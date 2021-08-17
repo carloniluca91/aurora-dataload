@@ -1,6 +1,6 @@
 package it.luca.aurora
 
-import it.luca.aurora.logging.Logging
+import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.option.{CliArguments, ScoptOptionParser}
 
 object Main
