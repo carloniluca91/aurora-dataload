@@ -3,6 +3,7 @@ val scalaTestVersion = "3.2.0"
 val scoptVersion = "4.0.0"
 val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
+val jacksonVersion = "2.9.9"
 
 lazy val commonSettings = Seq(
   organization := "it.luca",
@@ -30,18 +31,23 @@ lazy val commonSettings = Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test :: Nil
 )
 
-lazy val root = (project in file("."))
-  .aggregate(application, core)
+lazy val dataload = (project in file("."))
+  .aggregate(application, core, configuration)
 
 lazy val application = (project in file("application"))
   .settings(
     commonSettings,
     libraryDependencies ++= "com.github.scopt" %% "scopt" % scoptVersion :: Nil)
-  .dependsOn(core)
+  .dependsOn(core, configuration)
 
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
-    libraryDependencies ++= "org.projectlombok" % "lombok" % lombokVersion % Provided ::
-      "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion :: Nil
+    libraryDependencies ++= "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion ::
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion :: Nil
   )
+
+lazy val configuration = (project in file("configuration"))
+  .settings(
+    commonSettings,
+    libraryDependencies ++= "org.projectlombok" % "lombok" % lombokVersion % Provided :: Nil)

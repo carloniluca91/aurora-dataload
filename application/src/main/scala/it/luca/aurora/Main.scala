@@ -9,7 +9,10 @@ object Main
 
   log.info("Started application main class")
   ScoptOptionParser.parse(args, CliArguments()) match {
-    case Some(x) => log.info(s"Successfully parsed input arguments.\n\n$x")
+    case Some(arguments) =>
+
+      log.info(s"Successfully parsed input arguments.\n\n$arguments")
+      new DataLoadJob(arguments).run()
     case None => log.error(s"Unable to parse input arguments. Provided args: ${args.mkString(" ")}")
   }
 }

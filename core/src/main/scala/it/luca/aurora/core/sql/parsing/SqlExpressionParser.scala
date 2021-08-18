@@ -35,7 +35,7 @@ object SqlExpressionParser
       case isNullExpression: IsNullExpression => parseIsNullExpression(isNullExpression)
       case inExpression: InExpression => parseInExpression(inExpression)
       case function: net.sf.jsqlparser.expression.Function => parseSqlFunction(function)
-      case _ => throw UnidentifiedExpressionException(input)
+      case _ => throw new UnidentifiedExpressionException(input)
     }
 
     log.info(s"Successfully parsed input string $input as an instance of ${classOf[Column].getSimpleName}")

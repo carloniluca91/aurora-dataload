@@ -1,0 +1,11 @@
+application:
+  properties:
+    application.root: /user/osboxes/apps/aurora-dataload
+    rawData.landing.root: ${application.root}/datasources/landing
+    datasources.configuration.root: ${application.root}/datasources/configuration
+    impala.driverClass: com.cloudera.impala.jdbc.Driver
+    impala.jdbc.url: jdbc:impala://quickstart-bigdata:21050;AuthMech=0;
+  dataSources:
+    -
+      id: CEDACRI
+      configurationFile: ${datasources.configuration.root}/cedacri.json
