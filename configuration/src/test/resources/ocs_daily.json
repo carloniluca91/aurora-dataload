@@ -1,0 +1,25 @@
+{
+	"id": "OCS_DAILY",
+	"version": "1.0",
+	"paths": {
+		"landing": "${datasources.data.root}/ocs_daily/landing",
+		"success": "${datasources.data.root}/ocs_daily/success",
+		"failed": "${datasources.data.root}/ocs_daily/failed"
+	},
+	"fileNameRegex": "^ocs_daily_(\\d{8})\\.csv\\.gz$",
+	"filters": [
+		"has_date_format(data_invio, 'dd/MM/yyyy')",
+		"cod_campo is not null"
+	],
+	"transformations": [
+		"change_date_format(data_invio, 'dd/MM/yyyy', 'yyyy-MM-dd')",
+		"lpad(cod_campo, 8, '0')"
+	],
+	"outputTable": "${ocs.daily.tableName}",
+	"saveMode": "${ocs.daily.saveMode}",
+	"partitionBy": {
+		"strategy": "FILE_NAME_REGEX",
+		"group": 1,
+		"pattern": "yyyyMMdd"
+	}
+}

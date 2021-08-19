@@ -3,7 +3,7 @@ val scalaTestVersion = "3.2.0"
 val scoptVersion = "4.0.0"
 val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
-val jacksonVersion = "2.9.9"
+// val jacksonVersion = "2.9.9"
 
 lazy val commonSettings = Seq(
   organization := "it.luca",
@@ -43,8 +43,7 @@ lazy val application = (project in file("application"))
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
-    libraryDependencies ++= "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion ::
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion :: Nil
+    libraryDependencies ++= "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion :: Nil
   )
 
 lazy val configuration = (project in file("configuration"))

@@ -10,7 +10,7 @@ class ApplicationYamlTest extends AnyFlatSpec {
 
     val FirstProperty = "first.property"
     val SecondProperty = "second.property"
-    val properties: java.util.Map[String, String] = new util.HashMap[String, String]{{
+    val properties: util.Map[String, String] = new util.HashMap[String, String]{{
       put(FirstProperty, "v1")
       put(SecondProperty, "${first.property}/v2")
     }}

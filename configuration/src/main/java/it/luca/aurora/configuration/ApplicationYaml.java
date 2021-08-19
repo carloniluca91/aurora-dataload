@@ -26,15 +26,19 @@ public class ApplicationYaml {
     public ApplicationYaml withInterpolation() {
 
         Pattern pattern = Pattern.compile("\\$\\{([\\w|.]+)}");
+
+        /*
         properties.forEach((key, value) -> {
 
             Matcher matcher = pattern.matcher(value);
             if (matcher.matches()) {
 
-                String interpolatedValue = matcher.replaceAll(properties.get(matcher.group(1)));
+                }
                 properties.put(key, interpolatedValue);
             }
         });
+
+         */
 
         return this;
     }
