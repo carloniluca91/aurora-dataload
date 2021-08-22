@@ -13,6 +13,6 @@ object ScoptOption extends Enumeration {
 
   implicit def valueToEnumVal(x: Value): ScoptOptionVal = x.asInstanceOf[ScoptOptionVal]
 
-  val PropertiesFile: ScoptOptionVal = ScoptOptionVal('p', "properties-file", "Name of .properties file for Spark application")
+  val YamlFileName: ScoptOptionVal = ScoptOptionVal('y', "yaml-file", "Name of .yaml file for Spark application")
   val DataSource: ScoptOptionVal = ScoptOptionVal('d', "datasource", "Name of datasource for which data must be loaded")
 }

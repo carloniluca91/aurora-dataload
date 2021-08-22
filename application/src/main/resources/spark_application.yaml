@@ -1,0 +1,13 @@
+properties:
+  application.root: /user/osboxes/apps/aurora-dataload
+  datasources.data.root: ${application.root}/datasources/
+  datasources.metadata.root: ${application.root}/datasources/metadata
+  impala.db.name: pc_aurora_uat_analysis
+  impala.jdbc.driverClass: com.cloudera.impala.jdbc.Driver
+  impala.jdbc.url: jdbc:impala://quickstart-bigdata:21050;AuthMech=0;
+
+dataSources:
+  -
+    id: OCS_DAILY
+    metadataFilePath: ${datasources.metadata.root}/ocs_daily.json
+
