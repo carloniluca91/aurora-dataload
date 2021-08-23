@@ -71,7 +71,7 @@ public class ApplicationYaml {
      * @throws DuplicatedDataSourceException if more than one dataSource has such id
      */
 
-    public DataSource getDataSourceWithId(String id) throws UnExistingDataSourceException, DuplicatedDataSourceException{
+    public DataSource getDataSourceWithId(String id) throws UnExistingDataSourceException, DuplicatedDataSourceException {
 
         List<DataSource> matchingDataSources = dataSources.stream()
                 .filter(x -> x.getId().equalsIgnoreCase(id))

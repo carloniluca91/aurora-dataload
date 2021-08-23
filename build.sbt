@@ -37,7 +37,14 @@ lazy val dataload = (project in file("."))
 lazy val application = (project in file("application"))
   .settings(
     commonSettings,
-    libraryDependencies ++= "com.github.scopt" %% "scopt" % scoptVersion :: Nil)
+    libraryDependencies ++= "com.github.scopt" %% "scopt" % scoptVersion :: Nil,
+    assemblyJarName in assembly := s"${name.value}.jar",
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", _*) => MergeStrategy.discard
+      case x =>
+        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        oldStrategy(x) }
+  )
   .dependsOn(core)
 
 lazy val core = (project in file("core"))

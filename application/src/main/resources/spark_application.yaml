@@ -1,6 +1,6 @@
 properties:
   application.root: /user/osboxes/apps/aurora-dataload
-  datasources.data.root: ${application.root}/datasources/
+  datasources.data.root: ${application.root}/datasources
   datasources.metadata.root: ${application.root}/datasources/metadata
   impala.db.name: pc_aurora_uat_analysis
   impala.jdbc.driverClass: com.cloudera.impala.jdbc.Driver
