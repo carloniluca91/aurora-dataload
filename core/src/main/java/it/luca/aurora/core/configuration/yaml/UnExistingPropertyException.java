@@ -1,6 +1,6 @@
 package it.luca.aurora.core.configuration.yaml;
 
-public class UnExistingPropertyException extends RuntimeException {
+public class UnExistingPropertyException extends Exception {
 
     public UnExistingPropertyException(String key) {
 

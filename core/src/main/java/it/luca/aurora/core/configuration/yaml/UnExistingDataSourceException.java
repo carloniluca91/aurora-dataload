@@ -1,6 +1,6 @@
 package it.luca.aurora.core.configuration.yaml;
 
-public class UnExistingDataSourceException extends RuntimeException {
+public class UnExistingDataSourceException extends Exception {
 
     public UnExistingDataSourceException(String id) {
 

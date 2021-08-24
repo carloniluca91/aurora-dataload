@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "id")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
+        property = "id",
+        visible = true)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = RegexFileNameStrategy.class, name = "FILE_NAME_REGEX")
 })

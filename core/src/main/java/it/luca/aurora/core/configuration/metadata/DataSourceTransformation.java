@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
+import java.util.Optional;
+
 @Getter
 public class DataSourceTransformation {
 
@@ -16,5 +18,10 @@ public class DataSourceTransformation {
 
         this.expression = expression;
         this.alias = alias;
+    }
+
+    public boolean isAliasPresent() {
+
+        return Optional.ofNullable(alias).isPresent();
     }
 }

@@ -1,7 +1,7 @@
 package it.luca.aurora.core.sql.parsing
 
 import it.luca.aurora.core.logging.Logging
-import it.luca.aurora.core.sql.functions.{MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
+import it.luca.aurora.core.sql.functions.{MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
 import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
 import net.sf.jsqlparser.expression._
 import net.sf.jsqlparser.parser.CCJSqlParserUtil
@@ -139,6 +139,7 @@ object SqlExpressionParser
       //case "concat_ws" => ConcatWs(function)
       //case "lpad" | "rpad" => LeftOrRightPad(function)
       //case "substring" => Substring(function)
+      case "matches_date_format" | "matches_timestamp_format" => MatchesDateOrTimestampFormat(function)
       case "to_date" | "to_timestamp" => ToDateOrTimestamp(function)
     }
 

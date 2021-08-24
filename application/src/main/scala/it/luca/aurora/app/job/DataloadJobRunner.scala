@@ -36,7 +36,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
 
     val metadataJsonStringWithInterpolation: String = Utils.interpolateString(metadataJsonString, yaml)
     val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.JSON)
-    val dataSourceLandingPath: String = dataSourceMetadata.getPaths.getLanding
+    val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))
     val isValidInputFile: FileStatus => Boolean = f => f.isFile && f.getPath.getName.matches(dataSourceMetadata.getFileNameRegex)
     val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
