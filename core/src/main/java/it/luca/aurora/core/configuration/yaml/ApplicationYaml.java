@@ -26,9 +26,10 @@ public class ApplicationYaml {
     /**
      * Performs property interpolation
      * @return copy of this instance of {@link ApplicationYaml} with interpolated properties
+     * @throws UnExistingPropertyException if interpolation fails
      */
 
-    public ApplicationYaml withInterpolation() {
+    public ApplicationYaml withInterpolation() throws UnExistingPropertyException {
 
         Pattern pattern = Pattern.compile("(\\$\\{([\\w.]+)})");
         List<String> keySet = new ArrayList<>(properties.keySet());

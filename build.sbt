@@ -1,5 +1,6 @@
 val sparkVersion = "2.4.0-cdh6.3.2"
 val scalaTestVersion = "3.2.0"
+val scalaMockVersion = "5.1.0"
 val scoptVersion = "4.0.0"
 val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
@@ -20,6 +21,9 @@ lazy val commonSettings = Seq(
     "-target:jvm-1.8" ::
     "-feature" :: "-language:implicitConversions" :: Nil,
 
+  // Compile Java sources first
+  compileOrder := CompileOrder.JavaThenScala,
+
   // Cloudera Repo (for Spark dependencies)
   resolvers +=
     "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
@@ -28,7 +32,8 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= "org.apache.spark" %% "spark-core" % sparkVersion ::
     "org.apache.spark" %% "spark-sql" % sparkVersion ::
     "org.scalactic" %% "scalactic" % scalaTestVersion ::
-    "org.scalatest" %% "scalatest" % scalaTestVersion % Test :: Nil
+    "org.scalatest" %% "scalatest" % scalaTestVersion % Test ::
+    "org.scalamock" %% "scalamock" % scalaMockVersion % Test :: Nil
 )
 
 lazy val dataload = (project in file("."))
