@@ -46,7 +46,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val invalidRecordsDataFrame: DataFrame = inputDataFrame
         .filter(!overallFilterCol)
         .withColumn("failed_checks", concat_ws(", ", filterFailureReportCols: _*))
-        .withInputFilePathCol(fileStatus)
+        .withInputFilePathCol(filePath)
         .withTechnicalColumns()
 
       // Valid records
@@ -61,7 +61,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val validRecordsDataFrame: DataFrame = inputDataFrame
         .filter(overallFilterCol)
         .select(trustedDataFrameColumns: _*)
-        .withInputFilePathCol(fileStatus)
+        .withInputFilePathCol(filePath)
         .withTechnicalColumns()
 
       log.info(s"Successfully added all of $numberOfTransformations for dataSource $dataSourceId")
@@ -71,7 +71,6 @@ class DataloadJob(override protected val sparkSession: SparkSession,
         case regex: FileNameRegexStrategy => lit(regex.getDateFromFileName(dataSourceMetadata.getFileNameRegex, filePath))
         case columnName: ColumnNameStrategy => lit(columnName.getColumnName)
       }
-
     } match {
       case Success(_) => dataloadRecordFunction(None)
       case Failure(exception) => dataloadRecordFunction(Some(exception))

@@ -1,6 +1,6 @@
 package it.luca.aurora.core.implicits
 
-import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
@@ -13,12 +13,12 @@ class DataFrameWrapper(private val dataFrame: DataFrame) {
 
   /**
    * Add technical column related to the HDFS path of ingested file
-   * @param fileStatus instance of [[org.apache.hadoop.fs.FileStatus]]
+   * @param filePath instance of [[org.apache.hadoop.fs.Path]]
    * @return original dataFrame with column "input_file_path"
    */
 
-  def withInputFilePathCol(fileStatus: FileStatus): DataFrame =
-    dataFrame.withColumn("input_file_path", lit(fileStatus.getPath.toString))
+  def withInputFilePathCol(filePath: Path): DataFrame =
+    dataFrame.withColumn("input_file_path", lit(filePath.toString))
 
   /**
    * Add some technical columns related to current Spark application to a [[org.apache.spark.sql.DataFrame]]

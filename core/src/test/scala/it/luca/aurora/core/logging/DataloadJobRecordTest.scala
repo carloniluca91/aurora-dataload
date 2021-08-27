@@ -1,7 +1,7 @@
 package it.luca.aurora.core.logging
 
 import it.luca.aurora.core.configuration.yaml.DataSource
-import it.luca.aurora.core.implicits.SparkContextWrapper
+import it.luca.aurora.core.implicits._
 import org.apache.hadoop.fs.Path
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
@@ -57,7 +57,7 @@ class DataloadJobRecordTest
     record.exceptionMessage shouldEqual Some(throwable.getMessage)
   }
 
-  it should s"report anything if an empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
+  it should s"not report anything if an empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
 
     val record = DataloadJobRecord(scWrapper, dataSource, filePath, yarnUiUrl, None)
 

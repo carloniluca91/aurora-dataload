@@ -1,10 +1,10 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
-import it.luca.aurora.app.utils.Utils
+import it.luca.aurora.app.utils.Utils.interpolateString
 import it.luca.aurora.core.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.core.configuration.yaml.{ApplicationYaml, DataSource}
-import it.luca.aurora.core.logging.Logging
+import it.luca.aurora.core.logging.{DataloadJobRecord, Logging}
 import it.luca.aurora.core.utils.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
@@ -34,7 +34,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
       .fromInputStream(fs.open(metadataFilePath))
       .getLines().mkString(" ")
 
-    val metadataJsonStringWithInterpolation: String = Utils.interpolateString(metadataJsonString, yaml)
+    val metadataJsonStringWithInterpolation: String = interpolateString(metadataJsonString, yaml)
     val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.JSON)
     val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))
@@ -48,8 +48,8 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
     }
 
     val validInputFiles: Seq[FileStatus] = fileStatuses.filter { isValidInputFile }
-
-
+    val dataloadJob = new DataloadJob(sparkSession, impalaJDBCConnection, dataSource, dataSourceMetadata)
+    val dataloadJobRecords: Seq[DataloadJobRecord] = validInputFiles.map(dataloadJob.run)
   }
 
   private def initSparkSession(): SparkSession = {
