@@ -1,8 +1,8 @@
 package it.luca.aurora.core.logging
 
 import it.luca.aurora.core.configuration.yaml.DataSource
-import org.apache.hadoop.fs.FileStatus
-import org.apache.spark.SparkContext
+import it.luca.aurora.core.implicits._
+import org.apache.hadoop.fs.Path
 
 import java.sql.Timestamp
 import java.time.LocalDateTime
@@ -28,39 +28,35 @@ object DataloadJobRecord {
 
   /**
    * Create an instance of [[it.luca.aurora.core.logging.DataloadJobRecord]]
-   *
-   * @param sparkContext instance of [[org.apache.spark.SparkContext]]
-   * @param dataSource instance of [[it.luca.aurora.core.configuration.yaml.DataSource]]
+   * @param scWrapper implicit [[SparkContextWrapper]] of current Spark application
+   * @param dataSource instance of [[DataSource]]
+   * @param filePath [[Path]] of ingested file
    * @param yarnUiUrl Root Url of Yarn UI
-   * @param exceptionOpt optional exception to be logged
-   * @return instance of [[it.luca.aurora.core.logging.DataloadJobRecord]]
+   * @param exceptionOpt optional exception to be reported
+   * @return instance of [[DataloadJobRecord]]
    */
 
-  def apply(sparkContext: SparkContext,
+  def apply(scWrapper: SparkContextWrapper,
             dataSource: DataSource,
-            fileStatus: FileStatus,
+            filePath: Path,
             yarnUiUrl: String,
             exceptionOpt: Option[Throwable]): DataloadJobRecord = {
 
     val now = LocalDateTime.now()
-    val appId: String = sparkContext.applicationId
-    val appStartTime = new Timestamp(sparkContext.startTime)
-    val appStartTimeLdtm: LocalDateTime = appStartTime.toLocalDateTime
-    val appStartTimeFormatted: String = appStartTimeLdtm
-      .format(DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss"))
+    val appId: String = scWrapper.applicationId
 
     DataloadJobRecord(applicationId = appId,
-      applicationName = sparkContext.appName,
-      applicationStartTime = appStartTime,
-      applicationStartDate = appStartTimeLdtm.format(DateTimeFormatter.ISO_LOCAL_DATE),
+      applicationName = scWrapper.appName,
+      applicationStartTime = scWrapper.startTimeAsTimestamp,
+      applicationStartDate = scWrapper.startTimeAsString("yyyy-MM-dd"),
       dataSourceId = dataSource.getId,
       metadataFilePath = dataSource.getMetadataFilePath,
-      ingestedFile = fileStatus.getPath.toString,
+      ingestedFile = filePath.toString,
       ingestionOperationCode = exceptionOpt.map(_ => "KO").getOrElse("OK"),
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),
       exceptionMessage = exceptionOpt.map(x => x.getMessage),
       yarnApplicationUiUrl = s"$yarnUiUrl/$appId",
-      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_$appStartTimeFormatted.log",
+      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${scWrapper.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log",
       insertTs = Timestamp.valueOf(now),
       insertDt = now.format(DateTimeFormatter.ISO_LOCAL_DATE),
       month = now.format(DateTimeFormatter.ofPattern("yyyy-MM")))

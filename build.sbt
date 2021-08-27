@@ -8,7 +8,6 @@ val jacksonVersion = "2.9.9"
 
 lazy val commonSettings = Seq(
   organization := "it.luca",
-  name := "aurora-dataload",
   scalaVersion := "2.11.12",
   version := "0.1",
 
@@ -37,6 +36,9 @@ lazy val commonSettings = Seq(
 )
 
 lazy val dataload = (project in file("."))
+  .settings(
+    name := "aurora-dataload"
+  )
   .aggregate(application, core)
 
 lazy val application = (project in file("application"))

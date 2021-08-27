@@ -1,17 +1,27 @@
 package it.luca.aurora.core.implicits
 
+import org.apache.hadoop.fs.FileStatus
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
 
 import java.sql.Timestamp
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime}
 
-class ExtendedDataFrame(dataFrame: DataFrame) {
+class DataFrameWrapper(private val dataFrame: DataFrame) {
 
   /**
-   * Add technical columns to a [[org.apache.spark.sql.DataFrame]]
+   * Add technical column related to the HDFS path of ingested file
+   * @param fileStatus instance of [[org.apache.hadoop.fs.FileStatus]]
+   * @return original dataFrame with column "input_file_path"
+   */
+
+  def withInputFilePathCol(fileStatus: FileStatus): DataFrame =
+    dataFrame.withColumn("input_file_path", lit(fileStatus.getPath.toString))
+
+  /**
+   * Add some technical columns related to current Spark application to a [[org.apache.spark.sql.DataFrame]]
    * @return original [[org.apache.spark.sql.DataFrame]] plus some technical columns
    */
 
@@ -21,15 +31,16 @@ class ExtendedDataFrame(dataFrame: DataFrame) {
     val now = LocalDateTime.now()
     val nowAsTimestamp: Timestamp = Timestamp.valueOf(now)
     val sparkContext: SparkContext = dataFrame.sparkSession.sparkContext
-    val applicationStartTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(sparkContext.startTime), ZoneId.systemDefault())
+    val applicationStartTime = Timestamp.from(Instant.ofEpochMilli(sparkContext.startTime))
 
     dataFrame
       .withColumn("insert_ts", lit(nowAsTimestamp))
       .withColumn("insert_dt", lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
       .withColumn("application_id", lit(sparkContext.applicationId))
       .withColumn("application_name", lit(sparkContext.appName))
-      .withColumn("application_start_time", lit(Timestamp.valueOf(applicationStartTime)))
-      .withColumn("application_start_date", lit(applicationStartTime.format(DateTimeFormatter.ISO_LOCAL_DATE)))
+      .withColumn("application_start_time", lit(applicationStartTime))
+      .withColumn("application_start_date", lit(applicationStartTime
+        .toLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE)))
   }
 
   /**
