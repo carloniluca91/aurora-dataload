@@ -10,8 +10,8 @@ case class ChangeDateFormat(override protected val function: expression.Function
 
   override def getColumn(column: Column): Column = {
 
-    val inputPattern: String = getFunctionParameter[StringValue, String](0, _.getValue)
-    val outputPattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
+    val inputPattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
+    val outputPattern: String = getFunctionParameter[StringValue, String](2, _.getValue)
     date_format(to_date(column, inputPattern), outputPattern)
   }
 }

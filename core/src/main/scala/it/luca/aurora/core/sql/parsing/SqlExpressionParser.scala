@@ -1,11 +1,11 @@
 package it.luca.aurora.core.sql.parsing
 
 import it.luca.aurora.core.logging.Logging
-import it.luca.aurora.core.sql.functions.{MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
+import it.luca.aurora.core.sql.functions.{FunctionName, MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
 import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
 import net.sf.jsqlparser.expression._
-import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import net.sf.jsqlparser.{expression, schema}
+import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{col, lit, when}
 
@@ -15,10 +15,10 @@ object SqlExpressionParser
   extends Logging {
 
   /**
-   * Converts a string representing a SQL expression to a [[org.apache.spark.sql.Column]]
+   * Converts a string representing a SQL expression to a [[Column]]
    *
    * @param input input string
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   @throws(classOf[UnidentifiedExpressionException])
@@ -34,7 +34,7 @@ object SqlExpressionParser
       case binaryExpression: BinaryExpression => parseSqlBinaryExpression(binaryExpression)
       case isNullExpression: IsNullExpression => parseIsNullExpression(isNullExpression)
       case inExpression: InExpression => parseInExpression(inExpression)
-      case function: net.sf.jsqlparser.expression.Function => parseSqlFunction(function)
+      case function: expression.Function => parseSqlFunction(function)
       case _ => throw new UnidentifiedExpressionException(input)
     }
 
@@ -45,10 +45,10 @@ object SqlExpressionParser
   def parse(expression: Expression): Column = parse(expression.toString)
 
   /**
-   * Converts a subclass of [[net.sf.jsqlparser.expression.BinaryExpression]] to a [[org.apache.spark.sql.Column]]
+   * Converts a subclass of [[BinaryExpression]] to a [[Column]]
    *
    * @param expression input expression
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   def parseSqlBinaryExpression(expression: BinaryExpression): Column = {
@@ -72,10 +72,10 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[net.sf.jsqlparser.expression.operators.relational.IsNullExpression]] to a [[org.apache.spark.sql.Column]]
+   * Converts an instance of [[IsNullExpression]] to a [[Column]]
    *
    * @param expression input expression
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   def parseIsNullExpression(expression: IsNullExpression): Column = {
@@ -86,10 +86,10 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[net.sf.jsqlparser.expression.operators.relational.InExpression]] to a [[org.apache.spark.sql.Column]]
+   * Converts an instance of [[InExpression]] to a [[Column]]
    *
    * @param expression input expression
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   def parseInExpression(expression: InExpression): Column = {
@@ -106,10 +106,10 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[net.sf.jsqlparser.expression.CaseExpression]] to a [[org.apache.spark.sql.Column]]
+   * Converts an instance of [[CaseExpression]] to a [[Column]]
    *
    * @param expression input expression
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   def parseCaseExpression(expression: CaseExpression): Column = {
@@ -124,10 +124,10 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[net.sf.jsqlparser.expression.Function]] to a [[org.apache.spark.sql.Column]]
+   * Converts an instance of [[Function]] to a [[Column]]
    *
    * @param function input expression
-   * @return instance of [[org.apache.spark.sql.Column]]
+   * @return instance of [[Column]]
    */
 
   def parseSqlFunction(function: expression.Function): Column = {
@@ -139,8 +139,8 @@ object SqlExpressionParser
       //case "concat_ws" => ConcatWs(function)
       //case "lpad" | "rpad" => LeftOrRightPad(function)
       //case "substring" => Substring(function)
-      case "matches_date_format" | "matches_timestamp_format" => MatchesDateOrTimestampFormat(function)
-      case "to_date" | "to_timestamp" => ToDateOrTimestamp(function)
+      case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
+      case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
     }
 
     sqlFunction match {

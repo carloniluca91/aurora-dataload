@@ -9,7 +9,7 @@ case class MatchesDateOrTimestampFormat(override protected val function: express
 
   override def getColumn(column: Column): Column = {
 
-    val pattern: String = getFunctionParameter[StringValue, String](0, _.getValue)
+    val pattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
     val timeFunction: Column => Column = if (functionName.toLowerCase.contains("date"))
       to_date(_, pattern) else
       to_timestamp(_, pattern)

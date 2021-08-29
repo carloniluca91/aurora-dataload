@@ -10,7 +10,7 @@ case class ToDateOrTimestamp(override protected val function: expression.Functio
 
   override def getColumn(column: Column): Column = {
 
-    val pattern: String = getFunctionParameter[StringValue, String](0, _.getValue)
+    val pattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
     val timeFunction: Column => Column = if (functionName.toLowerCase.endsWith("date"))
       to_date(_, pattern) else
       to_timestamp(_, pattern)

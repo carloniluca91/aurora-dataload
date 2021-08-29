@@ -27,7 +27,7 @@ case class DataloadJobRecord(applicationId: String,
 object DataloadJobRecord {
 
   /**
-   * Create an instance of [[it.luca.aurora.core.logging.DataloadJobRecord]]
+   * Create an instance of [[DataloadJobRecord]]
    * @param scWrapper implicit [[SparkContextWrapper]] of current Spark application
    * @param dataSource instance of [[DataSource]]
    * @param filePath [[Path]] of ingested file

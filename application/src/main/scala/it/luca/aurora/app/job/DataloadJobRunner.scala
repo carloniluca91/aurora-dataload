@@ -35,6 +35,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
       .getLines().mkString(" ")
 
     val metadataJsonStringWithInterpolation: String = interpolateString(metadataJsonString, yaml)
+    log.info(s"Successfully interpolated content of file $metadataFilePath")
     val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.JSON)
     val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))

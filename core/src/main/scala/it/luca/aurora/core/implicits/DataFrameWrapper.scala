@@ -13,7 +13,7 @@ class DataFrameWrapper(private val dataFrame: DataFrame) {
 
   /**
    * Add technical column related to the HDFS path of ingested file
-   * @param filePath instance of [[org.apache.hadoop.fs.Path]]
+   * @param filePath instance of [[Path]]
    * @return original dataFrame with column "input_file_path"
    */
 
@@ -21,8 +21,8 @@ class DataFrameWrapper(private val dataFrame: DataFrame) {
     dataFrame.withColumn("input_file_path", lit(filePath.toString))
 
   /**
-   * Add some technical columns related to current Spark application to a [[org.apache.spark.sql.DataFrame]]
-   * @return original [[org.apache.spark.sql.DataFrame]] plus some technical columns
+   * Add some technical columns related to current Spark application to a [[DataFrame]]
+   * @return original [[DataFrame]] plus some technical columns
    */
 
   def withTechnicalColumns(): DataFrame = {
@@ -44,8 +44,8 @@ class DataFrameWrapper(private val dataFrame: DataFrame) {
   }
 
   /**
-   * Rename all dataFrame [[org.apache.spark.sql.DataFrame]] columns according to SQL naming convention
-   * @return original [[org.apache.spark.sql.DataFrame]] with columns renamed according to SQL naming convention
+   * Rename all dataFrame [[DataFrame]] columns according to SQL naming convention
+   * @return original [[DataFrame]] with columns renamed according to SQL naming convention
    *         (e.g, column 'applicationStartTime' becomes 'application_start_time)
    */
 
