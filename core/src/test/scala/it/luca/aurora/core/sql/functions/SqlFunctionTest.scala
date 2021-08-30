@@ -8,7 +8,7 @@ import org.apache.spark.sql.{DataFrame, Row}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should
 
-abstract class SingleColumnFunctionTest[T, R]
+abstract class SqlFunctionTest[T, R]
   extends should.Matchers
     with MockFactory {
 

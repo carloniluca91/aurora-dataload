@@ -1,38 +1,74 @@
 package it.luca.aurora.core.sql.parsing
 
-import it.luca.aurora.core.sql.functions.{FunctionName, ToDateOrTimestamp}
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import it.luca.aurora.core.sql.functions.{ChangeDateFormat, FunctionName, ToDateOrTimestamp}
+import org.apache.spark.sql.{Row, SparkSession}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should
 
-import java.time.LocalDate
+import java.sql.{Date, Timestamp}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
 
 class SqlExpressionParserTest
   extends AnyFlatSpec
-    with should.Matchers {
+    with BeforeAndAfterAll {
 
-  private val (firstColStr, secondColStr) = ("c1", "c2")
-  private val sparkSession: SparkSession = SparkSession.builder()
+  protected implicit val sparkSession: SparkSession = SparkSession.builder()
     .master("local")
     .appName(s"${classOf[SqlExpressionParserTest].getSimpleName}")
     .getOrCreate()
 
-  s"The SQL parser" should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function" in {
+  import sparkSession.implicits._
 
-    import sparkSession.implicits._
+  override def afterAll(): Unit = {
 
-    val (datePattern, timestampPattern) = ("yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss")
-    val expression = s"${FunctionName.ToDate}($firstColStr, '$datePattern')"
-    val expectedValue = LocalDate.now()
-    val testDfDate: DataFrame = (expectedValue
-      .format(DateTimeFormatter.ofPattern(datePattern)) :: Nil).toDF(firstColStr)
+    sparkSession.stop()
+    super.afterAll()
+  }
 
-    val parsedColumn: Column = SqlExpressionParser.parse(expression)
-    val actualValue: LocalDate = testDfDate.withColumn(secondColStr, parsedColumn)
-      .select(secondColStr).collect()
-      .map(r => r.getDate(0).toLocalDate).head
+  s"The SQL parser" should s"parse a ${classOf[ChangeDateFormat].getSimpleName} function" in {
 
-    actualValue shouldEqual expectedValue
+    val (inputPattern, outputPattern) = ("yyyyMMdd", "yyyy-MM-dd")
+    val (inputFormatter, outputFormatter) = (DateTimeFormatter.ofPattern(inputPattern), DateTimeFormatter.ofPattern(outputPattern))
+    val expression = s"${FunctionName.ChangeDateFormat}(${SqlFunctionTest.firstColumnName}, '$inputPattern', '$outputPattern')"
+    val functionTest: SqlFunctionTest[String, String] = new SqlFunctionTest[String, String] {
+      override protected val inputSampleToExpectedValue: String => String = s => LocalDate.parse(s, inputFormatter).format(outputFormatter)
+      override protected val rowToActualValue: Row => String = r => r.getString(0)
+    }
+
+    val minusDays: Int => String = days => LocalDate.now().minusDays(days).format(inputFormatter)
+    val inputSamples: Seq[String] = minusDays(1) :: minusDays(0) :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
+
+  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function (date case)" in {
+
+    val datePattern = "yyyy-MM-dd"
+    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(datePattern)
+    val expression = s"${FunctionName.ToDate}(${SqlFunctionTest.firstColumnName}, '$datePattern')"
+    val functionTest: SqlFunctionTest[String, Date] = new SqlFunctionTest[String, Date] {
+      override protected val inputSampleToExpectedValue: String => Date = s => Date.valueOf(LocalDate.parse(s, formatter))
+      override protected val rowToActualValue: Row => Date = r => r.getDate(0)
+    }
+
+    val minusDays: Int => String = days => LocalDate.now().minusDays(days).format(formatter)
+    val inputSamples: Seq[String] = minusDays(1) :: minusDays(0):: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
+  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function (timestamp case)" in {
+
+    val timestampPattern = "yyyy-MM-dd HH:mm:ss"
+    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(timestampPattern)
+    val expression = s"${FunctionName.ToTimestamp}(${SqlFunctionTest.firstColumnName}, '$timestampPattern')"
+    val functionTest: SqlFunctionTest[String, Timestamp] = new SqlFunctionTest[String, Timestamp] {
+      override protected val inputSampleToExpectedValue: String => Timestamp = s => Timestamp.valueOf(LocalDateTime.parse(s,formatter))
+      override protected val rowToActualValue: Row => Timestamp = r => r.getTimestamp(0)
+    }
+
+    val minusMinutes: Int => String = minutes => LocalDateTime.now().minusMinutes(minutes).format(formatter)
+    val inputSamples: Seq[String] = minusMinutes(5) :: minusMinutes(0) :: Nil
+    functionTest.test(expression, inputSamples)
   }
 }

@@ -1,7 +1,7 @@
 package it.luca.aurora.core.sql.parsing
 
 import it.luca.aurora.core.logging.Logging
-import it.luca.aurora.core.sql.functions.{FunctionName, MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
+import it.luca.aurora.core.sql.functions.{ChangeDateFormat, FunctionName, MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
 import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
 import net.sf.jsqlparser.expression._
 import net.sf.jsqlparser.{expression, schema}
@@ -135,12 +135,14 @@ object SqlExpressionParser
     // Standard Sql functions
     val sqlFunction: SqlFunction = function.getName.toLowerCase match {
 
+      case FunctionName.ChangeDateFormat => ChangeDateFormat(function)
       //case "concat" => Concat(function)
       //case "concat_ws" => ConcatWs(function)
       //case "lpad" | "rpad" => LeftOrRightPad(function)
       //case "substring" => Substring(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
+      case _ => throw new UnmatchedSQLFunction(function)
     }
 
     sqlFunction match {
