@@ -1,15 +1,16 @@
 package it.luca.aurora.core.sql.parsing
 
 import it.luca.aurora.core.logging.Logging
-import it.luca.aurora.core.sql.functions.{ChangeDateFormat, FunctionName, MatchesDateOrTimestampFormat, MultipleColumnFunction, SingleColumnFunction, SqlFunction, ToDateOrTimestamp}
-import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
+import it.luca.aurora.core.sql.functions._
 import net.sf.jsqlparser.expression._
+import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
+import net.sf.jsqlparser.parser.CCJSqlParserUtil.parseExpression
 import net.sf.jsqlparser.{expression, schema}
-import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{col, lit, when}
 
 import scala.collection.JavaConversions.asScalaBuffer
+import scala.util.matching.Regex
 
 object SqlExpressionParser
   extends Logging {
@@ -24,22 +25,34 @@ object SqlExpressionParser
   @throws(classOf[UnidentifiedExpressionException])
   def parse(input: String): Column = {
 
-    val outputColumn: Column = CCJSqlParserUtil.parseCondExpression(input, false) match {
-
-      case c: schema.Column => col(c.getColumnName)
-      case s: StringValue => lit(s.getValue)
-      case l: LongValue => lit(l.getValue.toInt)
-      case parenthesis: Parenthesis => parse(parenthesis.getExpression)
-      case caseWhen: CaseExpression => parseCaseExpression(caseWhen)
-      case binaryExpression: BinaryExpression => parseSqlBinaryExpression(binaryExpression)
-      case isNullExpression: IsNullExpression => parseIsNullExpression(isNullExpression)
-      case inExpression: InExpression => parseInExpression(inExpression)
-      case function: expression.Function => parseSqlFunction(function)
-      case _ => throw new UnidentifiedExpressionException(input)
+    val aliasExpressionRegex: Regex = "^(.+) as (\\w+)$".r
+    val eitherInputStrOrColumn: Either[String, Column] = aliasExpressionRegex
+      .findFirstMatchIn(input) match {
+      case Some(regexMatch) => Right(parse(regexMatch.group(1)).as(regexMatch.group(2)))
+      case None => Left(input)
     }
 
-    log.info(s"Successfully parsed input string $input as an instance of ${classOf[Column].getSimpleName}")
-    outputColumn
+    eitherInputStrOrColumn match {
+      case Right(column) => column
+      case Left(str) =>
+
+        val outputColumn: Column = parseExpression(str, false) match {
+
+          case c: schema.Column => col(c.getColumnName)
+          case s: StringValue => lit(s.getValue)
+          case l: LongValue => lit(l.getValue.toInt)
+          case parenthesis: Parenthesis => parse(parenthesis.getExpression)
+          case caseWhen: CaseExpression => parseCaseExpression(caseWhen)
+          case binaryExpression: BinaryExpression => parseSqlBinaryExpression(binaryExpression)
+          case isNullExpression: IsNullExpression => parseIsNullExpression(isNullExpression)
+          case inExpression: InExpression => parseInExpression(inExpression)
+          case function: expression.Function => parseSqlFunction(function)
+          case _ => throw new UnidentifiedExpressionException(input)
+        }
+
+        log.info(s"Successfully parsed input string $input as an instance of ${classOf[Column].getSimpleName}")
+        outputColumn
+    }
   }
 
   def parse(expression: Expression): Column = parse(expression.toString)
