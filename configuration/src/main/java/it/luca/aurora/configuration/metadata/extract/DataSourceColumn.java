@@ -1,4 +1,4 @@
-package it.luca.aurora.configuration.metadata;
+package it.luca.aurora.configuration.metadata.extract;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

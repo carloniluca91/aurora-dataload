@@ -6,6 +6,7 @@ properties:
   impala.jdbc.driverClass: com.cloudera.impala.jdbc.Driver
   impala.jdbc.url: jdbc:impala://quickstart-bigdata:21050;AuthMech=0;
   spark.partitionColumn.daily: dt_business_date
+  yarn.ui.url: http://quickstart-bigdata:8088/cluster/app
 
 dataSources:
   -

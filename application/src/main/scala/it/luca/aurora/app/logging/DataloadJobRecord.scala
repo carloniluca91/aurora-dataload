@@ -28,7 +28,7 @@ object DataloadJobRecord {
 
   /**
    * Create an instance of [[DataloadJobRecord]]
-   * @param scWrapper implicit [[SparkContextWrapper]] of current Spark application
+   * @param sparkContext implicit [[SparkContextWrapper]] of current Spark application
    * @param dataSource instance of [[DataSource]]
    * @param filePath [[Path]] of ingested file
    * @param yarnUiUrl Root Url of Yarn UI
@@ -36,19 +36,19 @@ object DataloadJobRecord {
    * @return instance of [[DataloadJobRecord]]
    */
 
-  def apply(scWrapper: SparkContextWrapper,
+  def apply(sparkContext: SparkContextWrapper,
             dataSource: DataSource,
-            filePath: Path,
             yarnUiUrl: String,
+            filePath: Path,
             exceptionOpt: Option[Throwable]): DataloadJobRecord = {
 
     val now = LocalDateTime.now()
-    val appId: String = scWrapper.applicationId
+    val appId: String = sparkContext.applicationId
 
     DataloadJobRecord(applicationId = appId,
-      applicationName = scWrapper.appName,
-      applicationStartTime = scWrapper.startTimeAsTimestamp,
-      applicationStartDate = scWrapper.startTimeAsString("yyyy-MM-dd"),
+      applicationName = sparkContext.appName,
+      applicationStartTime = sparkContext.startTimeAsTimestamp,
+      applicationStartDate = sparkContext.startTimeAsString("yyyy-MM-dd"),
       dataSourceId = dataSource.getId,
       metadataFilePath = dataSource.getMetadataFilePath,
       ingestedFile = filePath.toString,
@@ -56,7 +56,7 @@ object DataloadJobRecord {
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),
       exceptionMessage = exceptionOpt.map(x => x.getMessage),
       yarnApplicationUiUrl = s"$yarnUiUrl/$appId",
-      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${scWrapper.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log",
+      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${sparkContext.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log",
       insertTs = Timestamp.valueOf(now),
       insertDt = now.format(DateTimeFormatter.ISO_LOCAL_DATE),
       month = now.format(DateTimeFormatter.ofPattern("yyyy-MM")))

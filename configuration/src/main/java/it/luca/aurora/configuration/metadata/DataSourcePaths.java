@@ -12,9 +12,9 @@ public class DataSourcePaths {
     private final String success;
 
     @JsonCreator
-    public DataSourcePaths(@JsonProperty("landing") String landing,
-                           @JsonProperty("error") String error,
-                           @JsonProperty("success") String success) {
+    public DataSourcePaths(@JsonProperty(JsonField.LANDING) String landing,
+                           @JsonProperty(JsonField.ERROR) String error,
+                           @JsonProperty(JsonField.SUCCESS) String success) {
 
         this.landing = landing;
         this.error = error;

@@ -1,5 +1,6 @@
 package it.luca.aurora.configuration.metadata
 
+import it.luca.aurora.configuration.metadata.extract.DataSourceColumn
 import org.apache.spark.sql.types.{DataTypes, StructField}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should

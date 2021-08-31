@@ -2,7 +2,6 @@ package it.luca.aurora.configuration.metadata.extract;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import it.luca.aurora.configuration.metadata.DataSourceColumn;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;

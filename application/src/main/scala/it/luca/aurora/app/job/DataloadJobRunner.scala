@@ -40,7 +40,8 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
     val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.Json)
     val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))
-    val isValidInputFile: FileStatus => Boolean = f => f.isFile && f.getPath.getName.matches(dataSourceMetadata.getFileNameRegex)
+    val isValidInputFile: FileStatus => Boolean =
+      f => f.isFile && f.getPath.getName.matches(dataSourceMetadata.getEtlConfiguration.getExtract.getFileNameRegex)
     val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
     if (invalidInputPaths.nonEmpty) {
 
@@ -50,7 +51,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
     }
 
     val validInputFiles: Seq[FileStatus] = fileStatuses.filter { isValidInputFile }
-    val dataloadJob = new DataloadJob(sparkSession, impalaJDBCConnection, dataSource, dataSourceMetadata)
+    val dataloadJob = new DataloadJob(sparkSession, impalaJDBCConnection, yaml, dataSource, dataSourceMetadata)
     val dataloadJobRecords: Seq[DataloadJobRecord] = validInputFiles.map(dataloadJob.run)
   }
 
@@ -67,8 +68,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
   }
 
   /**
-   * Initializes a JDBC [[Connection]] to Impala
- *
+   * Initializes a [[Connection]] to Impala
    * @param yaml instance of [[ApplicationYaml]]
    * @throws java.lang.ClassNotFoundException if JDBC driver class is not found
    * @throws java.sql.SQLException if connection's initialization fails
