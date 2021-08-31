@@ -82,6 +82,7 @@ lazy val core = (project in file("core"))
 
 lazy val configuration = (project in file("configuration"))
   .settings(
+    name := "configuration",
     commonSettings,
     libraryDependencies ++= sparkSql ::
       jacksonYaml ::
