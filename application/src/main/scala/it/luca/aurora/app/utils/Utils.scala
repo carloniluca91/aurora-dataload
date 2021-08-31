@@ -1,6 +1,6 @@
 package it.luca.aurora.app.utils
 
-import it.luca.aurora.core.configuration.yaml.ApplicationYaml
+import it.luca.aurora.configuration.yaml.ApplicationYaml
 
 import scala.util.matching.Regex
 

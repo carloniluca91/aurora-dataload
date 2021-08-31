@@ -17,12 +17,12 @@ object SqlExpressionParser
 
   /**
    * Converts a string representing a SQL expression to a [[Column]]
-   *
    * @param input input string
+   * @throws it.luca.aurora.core.sql.parsing.UnidentifiedExpressionException if parsing fails
    * @return instance of [[Column]]
    */
 
-  @throws(classOf[UnidentifiedExpressionException])
+  @throws[UnidentifiedExpressionException]
   def parse(input: String): Column = {
 
     val aliasExpressionRegex: Regex = "^(.+) as (\\w+)$".r

@@ -1,10 +1,11 @@
 package it.luca.aurora.app.job
 
+import it.luca.aurora.app.logging.DataloadJobRecord
 import it.luca.aurora.app.option.CliArguments
 import it.luca.aurora.app.utils.Utils.interpolateString
-import it.luca.aurora.core.configuration.metadata.DataSourceMetadata
-import it.luca.aurora.core.configuration.yaml.{ApplicationYaml, DataSource}
-import it.luca.aurora.core.logging.{DataloadJobRecord, Logging}
+import it.luca.aurora.configuration.metadata.DataSourceMetadata
+import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
+import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.core.utils.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
@@ -36,7 +37,7 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
 
     val metadataJsonStringWithInterpolation: String = interpolateString(metadataJsonString, yaml)
     log.info(s"Successfully interpolated content of file $metadataFilePath")
-    val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.JSON)
+    val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.Json)
     val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))
     val isValidInputFile: FileStatus => Boolean = f => f.isFile && f.getPath.getName.matches(dataSourceMetadata.getFileNameRegex)
@@ -66,16 +67,16 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
   }
 
   /**
-   * Initializes a JDBC [[java.sql.Connection]] to Impala
+   * Initializes a JDBC [[Connection]] to Impala
  *
    * @param yaml instance of [[ApplicationYaml]]
    * @throws java.lang.ClassNotFoundException if JDBC driver class is not found
    * @throws java.sql.SQLException if connection's initialization fails
-   * @return [[java.sql.Connection]]
+   * @return instance of [[Connection]]
    */
 
-  @throws(classOf[ClassNotFoundException])
-  @throws(classOf[SQLException])
+  @throws[ClassNotFoundException]
+  @throws[SQLException]
   private def initImpalaJDBCConnection(yaml: ApplicationYaml): Connection = {
 
     val driverClassName: String = yaml.getProperty("impala.jdbc.driverClass")

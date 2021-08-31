@@ -1,3 +1,4 @@
+// Dependencies versions
 val sparkVersion = "2.4.0-cdh6.3.2"
 val scalaTestVersion = "3.2.0"
 val scalaMockVersion = "5.1.0"
@@ -6,6 +7,20 @@ val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
 val jacksonVersion = "2.9.9"
 
+// Compile dependencies
+lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion
+lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion
+lazy val scopt = "com.github.scopt" %% "scopt" % scoptVersion
+lazy val jacksonYaml = "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion
+lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
+lazy val jsqlParser = "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion
+
+// Test dependencies
+lazy val scalacTic = "org.scalactic" %% "scalactic" % scalaTestVersion
+lazy val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+lazy val scalaMock = "org.scalamock" %% "scalamock" % scalaMockVersion % Test
+
+// Common settings
 lazy val commonSettings = Seq(
   organization := "it.luca",
   scalaVersion := "2.11.12",
@@ -26,25 +41,24 @@ lazy val commonSettings = Seq(
   // Cloudera Repo (for Spark dependencies)
   resolvers +=
     "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-
-  // Common dependencies
-  libraryDependencies ++= "org.apache.spark" %% "spark-core" % sparkVersion ::
-    "org.apache.spark" %% "spark-sql" % sparkVersion ::
-    "org.scalactic" %% "scalactic" % scalaTestVersion ::
-    "org.scalatest" %% "scalatest" % scalaTestVersion % Test ::
-    "org.scalamock" %% "scalamock" % scalaMockVersion % Test :: Nil
 )
 
 lazy val dataload = (project in file("."))
   .settings(
     name := "aurora-dataload"
   )
-  .aggregate(application, core)
+  .aggregate(application, core, configuration)
 
 lazy val application = (project in file("application"))
   .settings(
     commonSettings,
-    libraryDependencies ++= "com.github.scopt" %% "scopt" % scoptVersion :: Nil,
+    libraryDependencies ++= sparkCore ::
+      sparkSql ::
+      scopt ::
+      scalacTic ::
+      scalaTest ::
+      scalaMock :: Nil,
+
     assemblyJarName in assembly := s"${name.value}.jar",
     assemblyMergeStrategy in assembly := {
       case PathList("META-INF", _*) => MergeStrategy.discard
@@ -52,12 +66,27 @@ lazy val application = (project in file("application"))
         val oldStrategy = (assemblyMergeStrategy in assembly).value
         oldStrategy(x) }
   )
-  .dependsOn(core)
+  .dependsOn(core, configuration)
 
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
-    libraryDependencies ++= "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion ::
-      "org.projectlombok" % "lombok" % lombokVersion % Provided ::
-      "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion :: Nil
+    libraryDependencies ++= sparkSql ::
+      jacksonYaml ::
+      lombok ::
+      jsqlParser ::
+      scalacTic ::
+      scalaTest ::
+      scalaMock :: Nil
+  )
+
+lazy val configuration = (project in file("configuration"))
+  .settings(
+    commonSettings,
+    libraryDependencies ++= sparkSql ::
+      jacksonYaml ::
+      lombok ::
+      scalacTic ::
+      scalaTest ::
+      scalaMock :: Nil
   )
