@@ -2,57 +2,60 @@ package it.luca.aurora.app.job
 
 import it.luca.aurora.app.logging.DataloadJobRecord
 import it.luca.aurora.app.option.CliArguments
+import it.luca.aurora.app.utils.FSUtils.getValidFilesWithin
 import it.luca.aurora.app.utils.Utils.interpolateString
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
+import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.core.utils.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import java.io.File
 import java.sql.{Connection, DriverManager, SQLException}
 import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 class DataloadJobRunner(protected val cliArguments: CliArguments)
   extends Logging {
 
   def run(): Unit = {
 
+    val dataSourceId: String = cliArguments.dataSource
     val sparkSession: SparkSession = initSparkSession()
-    val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml]).withInterpolation()
-    log.info(s"Successfully loaded file ${cliArguments.yamlFileName}")
-    val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
-    val dataSource: DataSource = yaml.getDataSourceWithId(cliArguments.dataSource)
+    Try {
 
-    val fs: FileSystem = FileSystem.get(sparkSession.sparkContext.hadoopConfiguration)
-    val metadataFilePath: Path = new Path(dataSource.getMetadataFilePath)
-    if (!fs.exists(metadataFilePath)) {
-      throw new UnExistingMetadataFileException(dataSource)
+      // Deserialize application's .yaml file
+      val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml]).withInterpolation()
+      log.info(s"Successfully read file ${cliArguments.yamlFileName}")
+      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
+      val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId)
+
+      // Read metadata file as a single String, interpolate it and deserialize it into a Java object
+      val fs: FileSystem = FileSystem.get(sparkSession.sparkContext.hadoopConfiguration)
+      val metadataFilePath: Path = new Path(dataSource.getMetadataFilePath)
+      val jsonString: String = Source
+        .fromInputStream(fs.open(metadataFilePath))
+        .getLines().mkString(" ")
+      val interpolatedJsonString: String = interpolateString(jsonString, yaml)
+      log.info(s"Successfully interpolated content of file $metadataFilePath")
+      val dataSourceMetadata: DataSourceMetadata = deserializeString(interpolatedJsonString, classOf[DataSourceMetadata], DataFormat.Json)
+
+      // Check files within dataSource's input folder
+      val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding,
+        dataSourceMetadata.getEtlConfiguration.getExtract.getFileNameRegex)
+      val validInputFiles: Seq[FileStatus] = getValidFilesWithin(fs, new Path(landingPath), fileNameRegex)
+      if (validInputFiles.nonEmpty) {
+        val dataloadJob = new DataloadJob(sparkSession, impalaJDBCConnection, yaml, dataSource, dataSourceMetadata)
+        val dataloadJobRecords: Seq[DataloadJobRecord] = validInputFiles.map(dataloadJob.run)
+      } else {
+        log.warn(s"Found no input file within path $landingPath matching regex $fileNameRegex")
+      }
+    } match {
+      case Success(value) => log.info(s"Successfully executed ingestion job for dataSource $dataSourceId")
+      case Failure(exception) =>
     }
-
-    val metadataJsonString: String = Source
-      .fromInputStream(fs.open(metadataFilePath))
-      .getLines().mkString(" ")
-
-    val metadataJsonStringWithInterpolation: String = interpolateString(metadataJsonString, yaml)
-    log.info(s"Successfully interpolated content of file $metadataFilePath")
-    val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonStringWithInterpolation, classOf[DataSourceMetadata], DataFormat.Json)
-    val dataSourceLandingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
-    val fileStatuses: Seq[FileStatus] = fs.listStatus(new Path(dataSourceLandingPath))
-    val isValidInputFile: FileStatus => Boolean =
-      f => f.isFile && f.getPath.getName.matches(dataSourceMetadata.getEtlConfiguration.getExtract.getFileNameRegex)
-    val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
-    if (invalidInputPaths.nonEmpty) {
-
-      val fileOrDirectory: FileStatus => String = x => if (x.isDirectory) "directory" else "file"
-      val invalidInputPathsStr = s"${invalidInputPaths.map { x => s"  Name: ${x.getPath.getName} (${fileOrDirectory(x)}})" }.mkString("\n") }"
-      log.warn(s"Found ${invalidInputPaths.size} invalid file(s) (or directories) at path $dataSourceLandingPath.\n$invalidInputPathsStr")
-    }
-
-    val validInputFiles: Seq[FileStatus] = fileStatuses.filter { isValidInputFile }
-    val dataloadJob = new DataloadJob(sparkSession, impalaJDBCConnection, yaml, dataSource, dataSourceMetadata)
-    val dataloadJobRecords: Seq[DataloadJobRecord] = validInputFiles.map(dataloadJob.run)
   }
 
   private def initSparkSession(): SparkSession = {
@@ -86,5 +89,15 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
     val connection: Connection = DriverManager.getConnection(impalaJdbcUrl)
     log.info("Successfully initialized Impala JDBC connection with URL {}", impalaJdbcUrl)
     connection
+  }
+
+  private def writeLogRecords(records: Seq[DataloadJobRecord], sparkSession: SparkSession): Unit = {
+
+    import sparkSession.implicits._
+
+    val partitionColumn: String = records.head.partitionColumn
+    val jobRecordsDataFrame: DataFrame = records.toDF().withSqlNamingConvention()
+    log.info(s"Successfully converted ${records.size} ${classOf[DataloadJobRecord].getSimpleName}(s) to a ${classOf[DataFrame].getSimpleName}")
+
   }
 }

@@ -22,7 +22,10 @@ case class DataloadJobRecord(applicationId: String,
                              yarnApplicationLogCmd: String,
                              insertTs: Timestamp,
                              insertDt: String,
-                             month: String)
+                             month: String) {
+
+  val partitionColumn: String = "month"
+}
 
 object DataloadJobRecord {
 

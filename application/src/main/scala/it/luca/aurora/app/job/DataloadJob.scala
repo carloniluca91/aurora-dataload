@@ -1,16 +1,17 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.logging.DataloadJobRecord
+import it.luca.aurora.app.utils.FSUtils.{getFileSystem, moveFileToDirectory}
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
-import it.luca.aurora.configuration.metadata.{DataSourceMetadata, EtlConfiguration}
+import it.luca.aurora.configuration.metadata.{DataSourceMetadata, DataSourcePaths, EtlConfiguration}
 import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.job.SparkJob
 import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
-import org.apache.hadoop.fs.{FileStatus, Path}
+import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.functions.{concat_ws, lit, when}
 import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 
@@ -38,12 +39,13 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   def run(fileStatus: FileStatus): DataloadJobRecord = {
 
     val filePath: Path = fileStatus.getPath
+    val fs: FileSystem = getFileSystem(sparkSession)
+    val (dataSourceId, etlConfiguration): (String, EtlConfiguration) = (dataSourceMetadata.getId, dataSourceMetadata.getEtlConfiguration)
+    val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
+    val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
     Try {
 
-      val (dataSourceId, etlConfiguration): (String, EtlConfiguration) = (dataSourceMetadata.getId, dataSourceMetadata.getEtlConfiguration)
-      val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
       val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
-
       val filterExpressions: Seq[String] = transform.getFilters
       val filterStatementsAndCols: Seq[(String, Column)] = filterExpressions.map { x => (x, SqlExpressionParser.parse(x)) }
       log.info(s"Successfully parsed all of ${filterExpressions.size} filter(s) for dataSource $dataSourceId")
@@ -55,9 +57,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val partitionInfo: PartitionInfo = load.getPartitionInfo
       val partitionColumnName: String = partitionInfo.getColumnName
       val partitionCol: Column = partitionInfo match {
-        case r: FileNameRegexInfo =>
-          val dateFromFileName: String = r.getDateFromFileName(extract.getFileNameRegex, filePath)
-          lit(dateFromFileName)
+        case r: FileNameRegexInfo => lit(r.getDateFromFileName(extract.getFileNameRegex, filePath))
         case c: ColumnExpressionInfo =>
           val column: Column = SqlExpressionParser.parse(c.getColumnExpression)
           log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnExpressionInfo].getSimpleName}")
@@ -65,8 +65,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       }
 
       // Invalid records (i.e. that do not satisfy all of dataSource filters)
-      val invalidRecordsDataFrame: DataFrame = inputDataFrame
-        .filter(!overallFilterCol)
+      val invalidRecordsDataFrame: DataFrame = inputDataFrame.filter(!overallFilterCol)
         .withColumn("failed_checks", concat_ws(", ", filterFailureReportCols: _*))
         .withInputFilePathCol(filePath)
         .withTechnicalColumns()
@@ -77,8 +76,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val trustedDataFrameColumns: Seq[Column] = transformationExpressions.map { SqlExpressionParser.parse }
       log.info(s"Successfully converted all of ${transformationExpressions.size} trasformation(s) for dataSource $dataSourceId")
 
-      val validRecordsDataFrame: DataFrame = inputDataFrame
-        .filter(overallFilterCol)
+      val validRecordsDataFrame: DataFrame = inputDataFrame.filter(overallFilterCol)
         .select(trustedDataFrameColumns: _*)
         .withInputFilePathCol(filePath)
         .withTechnicalColumns()
@@ -91,10 +89,13 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       write(invalidRecordsDataFrame, errorTable, SaveMode.Append, Some(partitionColumnName))
 
       log.info(s"Successfully ingested file ${filePath.toString}")
-
     } match {
-      case Success(_) => buildJobRecord(filePath, None)
-      case Failure(exception) => buildJobRecord(filePath, Some(exception))
+      case Success(_) =>
+        moveFileToDirectory(fs, filePath, dataSourcePaths.getSuccessPath)
+        buildJobRecord(filePath, None)
+      case Failure(exception) =>
+        moveFileToDirectory(fs, filePath, dataSourcePaths.getErrorPath)
+        buildJobRecord(filePath, Some(exception))
     }
   }
 }
