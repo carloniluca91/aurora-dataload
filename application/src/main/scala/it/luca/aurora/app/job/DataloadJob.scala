@@ -1,7 +1,6 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.logging.DataloadJobRecord
-import it.luca.aurora.app.utils.FSUtils.{getFileSystem, moveFileToDirectory}
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
@@ -38,17 +37,16 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
   def run(fileStatus: FileStatus): DataloadJobRecord = {
 
-    val filePath: Path = fileStatus.getPath
-    val fs: FileSystem = getFileSystem(sparkSession)
+    val (fs, filePath): (FileSystem, Path) = (sparkSession.getFileSystem, fileStatus.getPath)
     val (dataSourceId, etlConfiguration): (String, EtlConfiguration) = (dataSourceMetadata.getId, dataSourceMetadata.getEtlConfiguration)
     val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
     val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
-    Try {
+
+    val (exceptionOpt, targetPath): (Option[Throwable], Path) = Try {
 
       val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
-      val filterExpressions: Seq[String] = transform.getFilters
-      val filterStatementsAndCols: Seq[(String, Column)] = filterExpressions.map { x => (x, SqlExpressionParser.parse(x)) }
-      log.info(s"Successfully parsed all of ${filterExpressions.size} filter(s) for dataSource $dataSourceId")
+      val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
+      log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s) for dataSource $dataSourceId")
 
       val overallFilterCol: Column = filterStatementsAndCols.map{ _._2 }.reduce(_ && _)
       val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { x => when(x._2, x._1) }
@@ -72,17 +70,15 @@ class DataloadJob(override protected val sparkSession: SparkSession,
         .withColumn(partitionColumnName, partitionCol)
 
       // Valid records
-      val transformationExpressions: Seq[String] = transform.getTransformations
-      val trustedDataFrameColumns: Seq[Column] = transformationExpressions.map { SqlExpressionParser.parse }
-      log.info(s"Successfully converted all of ${transformationExpressions.size} trasformation(s) for dataSource $dataSourceId")
-
+      val trustedDataFrameColumns: Seq[Column] = transform.getTransformations.map { SqlExpressionParser.parse }
+      log.info(s"Successfully converted all of ${trustedDataFrameColumns.size} trasformation(s) for dataSource $dataSourceId")
       val validRecordsDataFrame: DataFrame = inputDataFrame.filter(overallFilterCol)
         .select(trustedDataFrameColumns: _*)
         .withInputFilePathCol(filePath)
         .withTechnicalColumns()
         .withColumn(partitionColumnName, partitionCol)
 
-      log.info(s"Successfully added all of ${transformationExpressions.size} for dataSource $dataSourceId")
+      log.info(s"Successfully added all of ${trustedDataFrameColumns.size} for dataSource $dataSourceId")
 
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
       write(validRecordsDataFrame, trustedTable, SaveMode.Append, Some(partitionColumnName))
@@ -90,12 +86,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       log.info(s"Successfully ingested file ${filePath.toString}")
     } match {
-      case Success(_) =>
-        moveFileToDirectory(fs, filePath, dataSourcePaths.getSuccessPath)
-        buildJobRecord(filePath, None)
-      case Failure(exception) =>
-        moveFileToDirectory(fs, filePath, dataSourcePaths.getErrorPath)
-        buildJobRecord(filePath, Some(exception))
+      case Success(_) => (None, dataSourcePaths.getSuccessPath)
+      case Failure(exception) => (Some(exception), dataSourcePaths.getErrorPath)
     }
+
+    fs.moveFileToDirectory(filePath, targetPath)
+    buildJobRecord(filePath, exceptionOpt)
   }
 }

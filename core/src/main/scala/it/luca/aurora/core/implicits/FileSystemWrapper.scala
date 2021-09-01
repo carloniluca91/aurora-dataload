@@ -1,21 +1,19 @@
-package it.luca.aurora.app.utils
+package it.luca.aurora.core.implicits
 
 import it.luca.aurora.core.logging.Logging
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.fs.{FileStatus, FileSystem, FileUtil, Path}
-import org.apache.spark.sql.SparkSession
 
-import java.io.IOException
+import scala.io.Source
+import scala.util.matching.Regex
 
-object FSUtils
+class FileSystemWrapper(protected val fs: FileSystem)
   extends Logging {
 
-  def getFileSystem(sparkSession: SparkSession): FileSystem = FileSystem.get(sparkSession.sparkContext.hadoopConfiguration)
-
-  def getValidFilesWithin(fs: FileSystem, directoryPath: Path, fileNameRegex: String): Seq[FileStatus] = {
+  def getListOfMatchingFiles(directoryPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
 
     val fileStatuses: Seq[FileStatus] = fs.listStatus(directoryPath)
-    val isValidInputFile: FileStatus => Boolean = f => f.isFile && f.getPath.getName.matches(fileNameRegex)
+    val isValidInputFile: FileStatus => Boolean = f => f.isFile && fileNameRegex.findFirstMatchIn(f.getPath.getName).isDefined
     val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
     if (invalidInputPaths.nonEmpty) {
 
@@ -27,8 +25,7 @@ object FSUtils
     fileStatuses.filter { isValidInputFile }
   }
 
-  @throws[IOException]
-  def moveFileToDirectory(fs: FileSystem, filePath: Path, directoryPath: Path): Unit = {
+  def moveFileToDirectory(filePath: Path, directoryPath: Path): Unit = {
 
     log.info(s"Moving input file $filePath to $directoryPath")
     if (!fs.exists(directoryPath)) {
@@ -39,5 +36,12 @@ object FSUtils
 
     FileUtil.copy(fs, filePath, fs, directoryPath, true, fs.getConf)
     log.info(s"Successfully moved input file $filePath to target directory $directoryPath")
+  }
+
+  def readFileAsString(path: Path): String = {
+
+    Source.fromInputStream(fs.open(path))
+      .getLines()
+      .mkString(" ")
   }
 }

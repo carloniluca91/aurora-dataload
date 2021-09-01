@@ -1,8 +1,8 @@
 package it.luca.aurora.app
 
 import it.luca.aurora.app.job.DataloadJobRunner
-import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.app.option.{CliArguments, CliOption}
+import it.luca.aurora.core.logging.Logging
 import scopt.OptionParser
 
 object Main

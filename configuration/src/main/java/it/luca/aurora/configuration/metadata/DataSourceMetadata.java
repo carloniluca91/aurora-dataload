@@ -23,4 +23,9 @@ public class DataSourceMetadata {
         this.dataSourcePaths = dataSourcePaths;
         this.etlConfiguration = etlConfiguration;
     }
+
+    public String getFileNameRegex() {
+
+        return etlConfiguration.getExtract().getFileNameRegex();
+    }
 }
