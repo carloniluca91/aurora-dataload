@@ -1,6 +1,6 @@
 package it.luca.aurora.core.sql.parsing
 
-import it.luca.aurora.core.logging.Logging
+import it.luca.aurora.core.Logging
 import it.luca.aurora.core.sql.functions._
 import net.sf.jsqlparser.expression._
 import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}

@@ -35,7 +35,7 @@ class DataloadJobRecordTest
     s"be correctly initialized" in {
 
     val exceptionOpt: Option[Throwable] = None
-    val record = DataloadJobRecord(scWrapper, dataSource, filePath, yarnUiUrl, exceptionOpt)
+    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, exceptionOpt)
     record.applicationId shouldEqual appId
     record.applicationName shouldEqual appName
     record.applicationStartTime shouldEqual startTimeTs
@@ -50,7 +50,7 @@ class DataloadJobRecordTest
   it should s"report exception class and message if a non-empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
 
     val throwable: IllegalArgumentException = new IllegalArgumentException("exceptionMsg")
-    val record = DataloadJobRecord(scWrapper, dataSource, filePath, yarnUiUrl, Some(throwable))
+    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, Some(throwable))
 
     record.ingestionOperationCode shouldEqual "KO"
     record.exceptionClass shouldEqual Some(throwable.getClass.getName)
@@ -59,7 +59,7 @@ class DataloadJobRecordTest
 
   it should s"not report anything if an empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
 
-    val record = DataloadJobRecord(scWrapper, dataSource, filePath, yarnUiUrl, None)
+    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, None)
 
     record.ingestionOperationCode shouldEqual "OK"
     record.exceptionClass shouldEqual None

@@ -1,12 +1,12 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
-import it.luca.aurora.app.utils.Utils.interpolateString
+import it.luca.aurora.configuration.implicits._
+import it.luca.aurora.configuration.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
+import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
-import it.luca.aurora.core.logging.Logging
-import it.luca.aurora.core.utils.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
 
@@ -25,22 +25,21 @@ class DataloadJobRunner(protected val cliArguments: CliArguments)
 
       // Deserialize application's .yaml file
       val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml]).withInterpolation()
-      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
       val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId)
+      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
 
       // Read metadata file as a single String, interpolate it and deserialize it into a Java object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
-      val jsonString: String = fs.readFileAsString(new Path(dataSource.getMetadataFilePath))
-      val interpolatedJsonString: String = interpolateString(jsonString, yaml)
+      val jsonString: String = fs.readFileAsString(new Path(dataSource.getMetadataFilePath)).interpolateUsingYaml(yaml)
       log.info(s"Successfully interpolated content of file ${dataSource.getMetadataFilePath}")
-      val dataSourceMetadata: DataSourceMetadata = deserializeString(interpolatedJsonString, classOf[DataSourceMetadata], DataFormat.Json)
+      val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata], DataFormat.JSON)
 
       // Check files within dataSource's input folder
       val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding, dataSourceMetadata.getFileNameRegex)
       val validInputFiles: Seq[FileStatus] = fs.getListOfMatchingFiles(new Path(landingPath), fileNameRegex.r)
       new DataloadJob(sparkSession, impalaJDBCConnection, yaml, dataSource, dataSourceMetadata)
-        .run(validInputFiles)
+        .processFiles(validInputFiles)
     } match {
       case Success(_) => log.info(s"Successfully executed ingestion job for dataSource $dataSourceId")
       case Failure(exception) => log.error(s"Caught exception while executing ingestion job for dataSource $dataSourceId. Stack trace: ", exception)

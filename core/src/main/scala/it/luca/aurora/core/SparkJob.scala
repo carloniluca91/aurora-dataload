@@ -1,8 +1,7 @@
-package it.luca.aurora.core.job
+package it.luca.aurora.core
 
-import it.luca.aurora.core.logging.Logging
+import org.apache.spark.sql._
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.{DataFrame, DataFrameWriter, Row, SaveMode, SparkSession}
 
 import java.sql.{Connection, SQLException}
 
@@ -12,7 +11,6 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
 
   /**
    * Saves a [[DataFrame]] to a Hive table and issues an ImpalaQL statement to make data available to Impala
- *
    * @param dataFrame [[DataFrame]] to be saved
    * @param fqTableName fully qualified (i.e. db.table) name of target table
    * @param saveMode [[SaveMode]] to be used
@@ -20,12 +18,11 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
    * @throws java.sql.SQLException if ImpalaQL statement fails
    */
 
-  //noinspection SameParameterValue
   @throws[SQLException]
-  protected def write(dataFrame: DataFrame,
-                      fqTableName: String,
-                      saveMode: SaveMode,
-                      partitionByColumnOpt: Option[String]): Unit = {
+  private def saveAsOrInsertInto(dataFrame: DataFrame,
+                                 fqTableName: String,
+                                 saveMode: SaveMode,
+                                 partitionByColumnOpt: Option[String]): Unit = {
 
     val dfClass: String = classOf[DataFrame].getSimpleName
     val cachedDataFrame: DataFrame = dataFrame.cache()
@@ -61,4 +58,14 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
       log.info(s"Successfully issued following ImpalaQL statement: $impalaQLStatement")
     }
   }
+
+  /**
+   * Saves a [[DataFrame]] to a Hive table with savemode "append" and issues an ImpalaQL statement to make data available to Impala
+   * @param dataFrame [[DataFrame]] to be saved
+   * @param fqTableName fully qualified (i.e. db.table) name of target table
+   * @param partitionColumn name of partition column
+   */
+
+  protected def saveAsOrInsertIntoInAppend(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Unit =
+    saveAsOrInsertInto(dataFrame, fqTableName, SaveMode.Append, Some(partitionColumn))
 }

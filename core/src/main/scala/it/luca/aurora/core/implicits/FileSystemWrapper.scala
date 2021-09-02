@@ -1,6 +1,6 @@
 package it.luca.aurora.core.implicits
 
-import it.luca.aurora.core.logging.Logging
+import it.luca.aurora.core.Logging
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.fs.{FileStatus, FileSystem, FileUtil, Path}
 

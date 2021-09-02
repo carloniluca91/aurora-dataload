@@ -1,4 +1,4 @@
-package it.luca.aurora.core.logging
+package it.luca.aurora.core
 
 import org.slf4j.{Logger, LoggerFactory}
 

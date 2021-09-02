@@ -7,12 +7,11 @@ import it.luca.aurora.configuration.metadata.transform.Transform
 import it.luca.aurora.configuration.metadata.{DataSourceMetadata, DataSourcePaths, EtlConfiguration}
 import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.implicits._
-import it.luca.aurora.core.job.SparkJob
-import it.luca.aurora.core.logging.Logging
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
+import it.luca.aurora.core.{Logging, SparkJob}
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.functions.{concat_ws, lit, when}
-import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 import java.sql.Connection
 import scala.collection.JavaConversions._
@@ -29,35 +28,35 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   protected final val dataSourceId: String = dataSourceMetadata.getId
   protected final val yarnUiUrl: String = yaml.getProperty("yarn.ui.url")
 
-  def run(fileStatuses: Seq[FileStatus]): Unit = {
+  def processFiles(inputFiles: Seq[FileStatus]): Unit = {
 
     val landingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileNameRegex: String = dataSourceMetadata.getFileNameRegex
-    if (fileStatuses.isEmpty) {
+    if (inputFiles.isEmpty) {
       log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
     } else {
 
-      log.info(s"Found ${fileStatuses.size} file(s) to ingest for dataSource $dataSourceId")
+      log.info(s"Found ${inputFiles.size} file(s) to ingest for dataSource $dataSourceId")
       val fs: FileSystem = sparkSession.getFileSystem
       val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
-      val dataloadJobRecords: Seq[DataloadJobRecord] = fileStatuses.map { fileStatus =>
+      val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
 
         // Depending on job execution, set optional exception and target directory where file will be moved
-        val (exceptionOpt, targetDirectoryPath): (Option[Throwable], Path) = run(fileStatus) match {
+        val (exceptionOpt, targetDirectoryPath): (Option[Throwable], Path) = processFile(inputFile) match {
           case Success(_) => (None, dataSourcePaths.getSuccessPath)
           case Failure(exception) => (Some(exception), dataSourcePaths.getErrorPath)
         }
 
-        // Move file to target directory
-        fs.moveFileToDirectory(fileStatus.getPath, targetDirectoryPath)
-        buildDataloadJobRecord(fileStatus.getPath, exceptionOpt)
+        val filePath: Path = inputFile.getPath
+        fs.moveFileToDirectory(filePath, targetDirectoryPath)
+        buildDataloadJobRecord(filePath, exceptionOpt)
       }
 
       writeDataloadJobRecords(dataloadJobRecords)
     }
   }
 
-  protected def run(fileStatus: FileStatus): Try[Unit] = {
+  protected def processFile(fileStatus: FileStatus): Try[Unit] = {
 
     Try {
 
@@ -104,8 +103,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      write(validRecordsDataFrame, trustedTable, SaveMode.Append, Some(partitionColumnName))
-      write(invalidRecordsDataFrame, errorTable, SaveMode.Append, Some(partitionColumnName))
+      saveAsOrInsertIntoInAppend(validRecordsDataFrame, trustedTable, partitionColumnName)
+      saveAsOrInsertIntoInAppend(invalidRecordsDataFrame, errorTable, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.toString}")
     }
   }
@@ -130,8 +129,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val jobRecordsDataFrame: DataFrame = records.toDF().withSqlNamingConvention()
       log.info(s"Successfully converted $recordsSize $recordClassName(s) to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = yaml.getProperty("spark.log.table.name")
-      val targetTablePartitionColumn: String = yaml.getProperty("spark.log.table.partitionColumn")
-      write(jobRecordsDataFrame, targetTable, SaveMode.Append, Some(targetTablePartitionColumn))
+      val partitionColumn: String = yaml.getProperty("spark.log.table.partitionColumn")
+      saveAsOrInsertIntoInAppend(jobRecordsDataFrame, targetTable, partitionColumn)
     } match {
       case Success(_) => log.info(s"Successfully saved all of $recordsSize $recordClassName(s)")
       case Failure(exception) => log.error(s"Caught exception while saving $records $recordClassName(s). Stack trace: ", exception)

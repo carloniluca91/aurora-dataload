@@ -6,8 +6,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
 
 import java.sql.Timestamp
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDateTime}
 
 class DataFrameWrapper(private val dataFrame: DataFrame) {
 
@@ -31,16 +31,14 @@ class DataFrameWrapper(private val dataFrame: DataFrame) {
     val now = LocalDateTime.now()
     val nowAsTimestamp: Timestamp = Timestamp.valueOf(now)
     val sparkContext: SparkContext = dataFrame.sparkSession.sparkContext
-    val applicationStartTime = Timestamp.from(Instant.ofEpochMilli(sparkContext.startTime))
 
     dataFrame
       .withColumn("insert_ts", lit(nowAsTimestamp))
       .withColumn("insert_dt", lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
       .withColumn("application_id", lit(sparkContext.applicationId))
       .withColumn("application_name", lit(sparkContext.appName))
-      .withColumn("application_start_time", lit(applicationStartTime))
-      .withColumn("application_start_date", lit(applicationStartTime
-        .toLocalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE)))
+      .withColumn("application_start_time", lit(sparkContext.startTimeAsTimestamp))
+      .withColumn("application_start_date", lit(sparkContext.startTimeAsString("yyyy-MM-dd")))
   }
 
   /**
