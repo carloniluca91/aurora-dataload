@@ -20,18 +20,15 @@ case class DataloadJobRecord(applicationId: String,
                              exceptionMessage: Option[String],
                              yarnApplicationUiUrl: String,
                              yarnApplicationLogCmd: String,
-                             insertTs: Timestamp,
-                             insertDt: String,
-                             month: String) {
-
-  val partitionColumn: String = "month"
-}
+                             insertTs: Timestamp = Timestamp.valueOf(LocalDateTime.now()),
+                             insertDt: String = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                             month: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM")))
 
 object DataloadJobRecord {
 
   /**
    * Create an instance of [[DataloadJobRecord]]
-   * @param sparkContext implicit [[SparkContextWrapper]] of current Spark application
+   * @param sparkContext [[SparkContextWrapper]] of current Spark application
    * @param dataSource instance of [[DataSource]]
    * @param filePath [[Path]] of ingested file
    * @param yarnUiUrl Root Url of Yarn UI
@@ -45,9 +42,7 @@ object DataloadJobRecord {
             filePath: Path,
             exceptionOpt: Option[Throwable]): DataloadJobRecord = {
 
-    val now = LocalDateTime.now()
     val appId: String = sparkContext.applicationId
-
     DataloadJobRecord(applicationId = appId,
       applicationName = sparkContext.appName,
       applicationStartTime = sparkContext.startTimeAsTimestamp,
@@ -59,9 +54,6 @@ object DataloadJobRecord {
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),
       exceptionMessage = exceptionOpt.map(x => x.getMessage),
       yarnApplicationUiUrl = s"$yarnUiUrl/$appId",
-      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${sparkContext.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log",
-      insertTs = Timestamp.valueOf(now),
-      insertDt = now.format(DateTimeFormatter.ISO_LOCAL_DATE),
-      month = now.format(DateTimeFormatter.ofPattern("yyyy-MM")))
+      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${sparkContext.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log")
   }
 }

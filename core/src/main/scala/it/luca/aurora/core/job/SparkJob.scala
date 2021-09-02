@@ -12,6 +12,7 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
 
   /**
    * Saves a [[DataFrame]] to a Hive table and issues an ImpalaQL statement to make data available to Impala
+ *
    * @param dataFrame [[DataFrame]] to be saved
    * @param fqTableName fully qualified (i.e. db.table) name of target table
    * @param saveMode [[SaveMode]] to be used
@@ -19,6 +20,7 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
    * @throws java.sql.SQLException if ImpalaQL statement fails
    */
 
+  //noinspection SameParameterValue
   @throws[SQLException]
   protected def write(dataFrame: DataFrame,
                       fqTableName: String,
