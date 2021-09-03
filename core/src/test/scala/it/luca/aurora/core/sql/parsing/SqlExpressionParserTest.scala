@@ -39,19 +39,45 @@ class SqlExpressionParserTest
     testDf.select(column).columns.head shouldEqual SqlExpressionTest.secondColumnName
   }
 
-  it should s"parse a ${classOf[ChangeDateFormat].getSimpleName} function" in {
+  it should s"parse a ${classOf[Concat].getSimpleName} function" in {
 
-    val (inputPattern, outputPattern) = ("yyyyMMdd", "yyyy-MM-dd")
-    val (inputFormatter, outputFormatter) = (DateTimeFormatter.ofPattern(inputPattern), DateTimeFormatter.ofPattern(outputPattern))
-    val expression = s"${FunctionName.ChangeDateFormat}(${SqlExpressionTest.firstColumnName}, '$inputPattern', '$outputPattern')"
-    val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
-      override protected def computeExpectedValue(input: String): String = LocalDate.parse(input, inputFormatter).format(outputFormatter)
+    val columnNames: Seq[String] = SqlExpressionTest.firstColumnName :: SqlExpressionTest.secondColumnName :: Nil
+    val expression = s"${FunctionName.Concat}(${columnNames.mkString(", ")})"
+    val functionTest: SqlExpressionTest[(String, String), String] = new SqlExpressionTest[(String, String), String] {
+      override protected def computeExpectedValue(input: (String, String)): String = input._1.concat(input._2)
       override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
-    val minusDays: Int => String = days => LocalDate.now().minusDays(days).format(inputFormatter)
-    val inputSamples: Seq[String] = minusDays(1) :: minusDays(0) :: Nil
-    functionTest.test(expression, inputSamples)
+    val inputSamples: Seq[(String, String)] = ("hello", "world") :: ("il", "Budello") :: Nil
+    functionTest.test(expression, inputSamples, columnNames)
+  }
+
+  it should s"parse a ${classOf[ConcatWs].getSimpleName} function" in {
+
+    val separator = ","
+    val columnNames: Seq[String] = SqlExpressionTest.firstColumnName :: SqlExpressionTest.secondColumnName :: Nil
+    val expression = s"${FunctionName.ConcatWs}('$separator', ${columnNames.mkString(", ")})"
+    val functionTest: SqlExpressionTest[(String, String), String] = new SqlExpressionTest[(String, String), String] {
+      override protected def computeExpectedValue(input: (String, String)): String = input._1.concat(separator).concat(input._2)
+      override protected def getActualValue(r: Row): String = r.getString(0)
+    }
+
+    val inputSamples: Seq[(String, String)] = ("hello", "world") :: ("il", "Budello") :: Nil
+    functionTest.test(expression, inputSamples, columnNames)
+  }
+
+  it should s"parse a ${classOf[DateFormat].getSimpleName} function" in {
+
+    val pattern = "yyyy-MM-dd"
+    val dtGeneratorF: Int => Date = i => Date.valueOf(LocalDate.now().minusDays(i))
+    val expression = s"${FunctionName.DateFormat}(${SqlExpressionTest.firstColumnName}, '$pattern')"
+    val dtFunctionTest: SqlExpressionTest[Date, String] = new SqlExpressionTest[Date, String] {
+      override protected def computeExpectedValue(input: Date): String = input.toLocalDate.format(DateTimeFormatter.ofPattern(pattern))
+      override protected def getActualValue(r: Row): String = r.getString(0)
+    }
+
+    val inputSamples: Seq[Date] = dtGeneratorF(2) :: dtGeneratorF(1) :: Nil
+    dtFunctionTest.test(expression, inputSamples)
   }
 
   it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {

@@ -2,7 +2,9 @@ package it.luca.aurora.core.sql.functions
 
 object FunctionName {
 
-  val ChangeDateFormat = "change_date_format"
+  val Concat = "concat"
+  val ConcatWs = "concat_ws"
+  val DateFormat = "date_format"
   val LeftPad = "lpad"
   val LeftTrim = "ltrim"
   val MatchesDateFormat = "matches_date_format"

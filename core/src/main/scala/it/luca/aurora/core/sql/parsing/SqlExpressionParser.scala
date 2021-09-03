@@ -9,7 +9,7 @@ import net.sf.jsqlparser.{expression, schema}
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{col, lit, when}
 
-import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.JavaConversions._
 import scala.util.matching.Regex
 
 object SqlExpressionParser
@@ -145,9 +145,9 @@ object SqlExpressionParser
     // Standard SQL functions
     val sqlFunction: SqlFunction = function.getName.toLowerCase match {
 
-      case FunctionName.ChangeDateFormat => ChangeDateFormat(function)
-      //case "concat" => Concat(function)
-      //case "concat_ws" => ConcatWs(function)
+      case FunctionName.Concat => Concat(function)
+      case FunctionName.ConcatWs => ConcatWs(function)
+      case FunctionName.DateFormat => DateFormat(function)
       case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.Substring => Substring(function)
@@ -165,15 +165,15 @@ object SqlExpressionParser
       case m: MultipleColumnFunction =>
 
         // Input parameters corresponding to input columns
-        val inputColumnExpressions: java.util.List[Expression] = m match {
+        val inputColumnExpressions: Seq[Expression] = m match {
 
           // ConcatWs: exclude first parameter (which is separator)
-          // case _: ConcatWs => function.getParameters.getExpressions.tail
+          case _: ConcatWs => function.getParameters.getExpressions.tail
           case _ => function.getParameters.getExpressions
         }
 
         val inputColumns: Seq[Column] = inputColumnExpressions.map(parse)
-        log.info(s"Parsed all of ${inputColumnExpressions.size()} input column(s) for ${m.getClass.getSimpleName} function")
+        log.info(s"Parsed all of ${inputColumnExpressions.size} input column(s) for ${m.getClass.getSimpleName} function")
         m.transform(inputColumns: _*)
     }
   }
