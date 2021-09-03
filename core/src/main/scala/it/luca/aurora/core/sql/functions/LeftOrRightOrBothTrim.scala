@@ -8,7 +8,7 @@ case class LeftOrRightOrBothTrim(override protected val function: expression.Fun
 
   override def transform(column: Column): Column = {
 
-    val trimFunction: Column => Column = functionName match {
+    val trimFunction: Column => Column = functionNameLowerCase match {
       case FunctionName.LeftTrim => ltrim
       case FunctionName.RightTrim => rtrim
       case FunctionName.Trim => trim

@@ -4,7 +4,7 @@ import it.luca.aurora.core.Logging
 import it.luca.aurora.core.sql.functions._
 import net.sf.jsqlparser.expression._
 import net.sf.jsqlparser.expression.operators.relational.{ExpressionList, InExpression, IsNullExpression}
-import net.sf.jsqlparser.parser.CCJSqlParserUtil.parseExpression
+import net.sf.jsqlparser.parser.CCJSqlParserUtil
 import net.sf.jsqlparser.{expression, schema}
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{col, lit, when}
@@ -25,18 +25,11 @@ object SqlExpressionParser
   @throws[UnidentifiedExpressionException]
   def parse(input: String): Column = {
 
-    val aliasExpressionRegex: Regex = "^(.+) as (\\w+)$".r
-    val eitherInputStrOrColumn: Either[String, Column] = aliasExpressionRegex
-      .findFirstMatchIn(input) match {
-      case Some(regexMatch) => Right(parse(regexMatch.group(1)).as(regexMatch.group(2)))
-      case None => Left(input)
-    }
-
-    eitherInputStrOrColumn match {
+    tryToParseASpecialCase(input) match {
       case Right(column) => column
       case Left(str) =>
 
-        val outputColumn: Column = parseExpression(str, false) match {
+        val outputColumn: Column = CCJSqlParserUtil.parseExpression(str, false) match {
 
           case c: schema.Column => col(c.getColumnName)
           case s: StringValue => lit(s.getValue)
@@ -56,6 +49,32 @@ object SqlExpressionParser
   }
 
   protected def parse(expression: Expression): Column = parse(expression.toString)
+
+  /**
+   * Attemps to parse a special case expression (i.e. not parsable using [[CCJSqlParserUtil]]
+   * @param input input SQL expression
+   * @return either a [[Column]] if parsing succeeded, or the input string otherwise
+   */
+
+  protected def tryToParseASpecialCase(input: String): Either[String, Column] = {
+
+    // Define a map holding regexes and related match-to-column conversion
+    val specialCases: Map[String, (Regex, Regex.Match => Column)] = Map(
+      "ALIAS" -> ("^(\\w+(\\(.+\\))?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(3))),
+      "CAST" -> ("^cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2)))
+    )
+
+    // If one of the regexes matches with input string, exploit the related match-to-column conversion
+    specialCases.find {
+      case (_, (regex, _)) => regex.findFirstMatchIn(input).isDefined
+    } match {
+      case Some(tuple) =>
+        val (key, (regex, matchToColumn)): (String, (Regex, Regex.Match => Column)) = tuple
+        log.debug(s"Matched special case $key")
+        Right(matchToColumn(regex.findFirstMatchIn(input).get))
+      case None => Left(input)
+    }
+  }
 
   /**
    * Converts a subclass of [[BinaryExpression]] to a [[Column]]

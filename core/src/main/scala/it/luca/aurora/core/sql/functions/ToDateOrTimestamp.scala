@@ -11,7 +11,7 @@ case class ToDateOrTimestamp(override protected val function: expression.Functio
   override def transform(column: Column): Column = {
 
     val pattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
-    val timeFunction: Column => Column = functionName match {
+    val timeFunction: Column => Column = functionNameLowerCase match {
       case FunctionName.ToDate => to_date(_, pattern)
       case FunctionName.ToTimestamp => to_timestamp(_, pattern)
     }

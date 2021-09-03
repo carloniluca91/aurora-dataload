@@ -10,7 +10,7 @@ case class MatchesDateOrTimestampFormat(override protected val function: express
   override def transform(column: Column): Column = {
 
     val pattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
-    val timeFunction: Column => Column = functionName match {
+    val timeFunction: Column => Column = functionNameLowerCase match {
       case FunctionName.MatchesDateFormat => to_date(_, pattern)
       case FunctionName.MatchesTimestampFormat => to_timestamp(_, pattern)
     }

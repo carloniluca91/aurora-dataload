@@ -11,7 +11,7 @@ case class LeftOrRightPad(override protected val function: expression.Function)
 
     val length: Int = getFunctionParameter[LongValue, Int](1, _.getValue.toInt)
     val padding: String = getFunctionParameter[StringValue, String](2, _.getValue)
-    val padFunction: Column => Column = functionName match {
+    val padFunction: Column => Column = functionNameLowerCase match {
       case FunctionName.LeftPad => lpad(_, length, padding)
       case FunctionName.RightPad => rpad(_, length, padding)
     }

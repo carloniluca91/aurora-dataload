@@ -10,7 +10,7 @@ import org.apache.spark.sql.Column
 
 sealed abstract class SqlFunction(protected val function: Function) {
 
-  protected final val functionName: String = function.getName
+  protected final val functionNameLowerCase: String = function.getName.toLowerCase
   protected final def getFunctionParameter[R <: Expression, T](index: Int, parameterConversion: R => T): T = {
 
     val nthParameterExpression: R = function.getParameters

@@ -39,6 +39,18 @@ class SqlExpressionParserTest
     testDf.select(column).columns.head shouldEqual SqlExpressionTest.secondColumnName
   }
 
+  it should s"parse a casting expression" in {
+
+    val expression = s"cast(${SqlExpressionTest.firstColumnName} as int)"
+    val functionTest: SqlExpressionTest[String, Int] = new SqlExpressionTest[String, Int] {
+      override protected def computeExpectedValue(input: String): Int = input.toInt
+      override protected def getActualValue(r: Row): Int = r.getInt(0)
+    }
+
+    val inputSamples: Seq[String] = "01" :: "02" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
   it should s"parse a ${classOf[Concat].getSimpleName} function" in {
 
     val columnNames: Seq[String] = SqlExpressionTest.firstColumnName :: SqlExpressionTest.secondColumnName :: Nil
