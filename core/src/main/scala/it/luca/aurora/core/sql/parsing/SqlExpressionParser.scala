@@ -25,7 +25,7 @@ object SqlExpressionParser
   @throws[UnidentifiedExpressionException]
   def parse(input: String): Column = {
 
-    tryToParseASpecialCase(input) match {
+    parseSpecialCases(input) match {
       case Right(column) => column
       case Left(str) =>
 
@@ -52,32 +52,31 @@ object SqlExpressionParser
 
   /**
    * Attemps to parse a special case expression (i.e. not parsable using [[CCJSqlParserUtil]]
-   * @param input input SQL expression
+   * @param input input SQL string
    * @return either a [[Column]] if parsing succeeded, or the input string otherwise
    */
 
-  protected def tryToParseASpecialCase(input: String): Either[String, Column] = {
+  protected def parseSpecialCases(input: String): Either[String, Column] = {
 
     // Define a map holding regexes and related match-to-column conversion
-    val specialCases: Map[String, (Regex, Regex.Match => Column)] = Map(
+    val specialCasesMap: Map[String, (Regex, Regex.Match => Column)] = Map(
       "ALIAS" -> ("^(\\w+(\\(.+\\))?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(3))),
       "CAST" -> ("^cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2)))
     )
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion
-    specialCases.find {
+    specialCasesMap.find {
       case (_, (regex, _)) => regex.findFirstMatchIn(input).isDefined
     } match {
       case Some(tuple) =>
-        val (key, (regex, matchToColumn)): (String, (Regex, Regex.Match => Column)) = tuple
-        log.debug(s"Matched special case $key")
+        val (_, (regex, matchToColumn)): (String, (Regex, Regex.Match => Column)) = tuple
         Right(matchToColumn(regex.findFirstMatchIn(input).get))
       case None => Left(input)
     }
   }
 
   /**
-   * Converts a subclass of [[BinaryExpression]] to a [[Column]]
+   * Converts a [[BinaryExpression]] to a [[Column]]
    * @param expression input expression
    * @return instance of [[Column]]
    */
@@ -103,7 +102,7 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[IsNullExpression]] to a [[Column]]
+   * Converts an [[IsNullExpression]] to a [[Column]]
    * @param expression input expression
    * @return instance of [[Column]]
    */
@@ -116,7 +115,7 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[InExpression]] to a [[Column]]
+   * Converts an [[InExpression]] to a [[Column]]
    * @param expression input expression
    * @return instance of [[Column]]
    */
@@ -135,8 +134,7 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[CaseExpression]] to a [[Column]]
-   *
+   * Converts a [[CaseExpression]] to a [[Column]]
    * @param expression input expression
    * @return instance of [[Column]]
    */
@@ -153,8 +151,7 @@ object SqlExpressionParser
   }
 
   /**
-   * Converts an instance of [[Function]] to a [[Column]]
-   *
+   * Converts a [[Function]] to a [[Column]]
    * @param function input expression
    * @return instance of [[Column]]
    */

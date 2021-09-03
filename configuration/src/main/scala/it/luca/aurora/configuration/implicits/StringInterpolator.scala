@@ -11,7 +11,7 @@ class StringInterpolator(protected val string: String) {
    * @param yaml instance of [[ApplicationYaml]]
    * @throws it.luca.aurora.configuration.yaml.UnExistingPropertyException if the value of an unknown property is requested
    * @return interpolated string (e.g. a token like ${a.property} is replaced with the value of property
-   *         'a.property' retrieved from the instance of [[ApplicationYaml]] (if present)
+   *         'a.property' retrieved from the instance of [[ApplicationYaml]] (if present))
    */
 
   @throws[UnExistingPropertyException]
