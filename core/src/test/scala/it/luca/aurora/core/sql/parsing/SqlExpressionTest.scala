@@ -4,8 +4,7 @@ import org.apache.spark.sql.{Column, DataFrame, Encoder, Row, SparkSession}
 import org.scalatest.matchers.should
 
 /**
- * Trait for testing a correct parsing of SQL expressions that should transform data from one type to another
- * according to a given [[Function]]
+ * Trait for testing the correct parsing of a SQL expression
  * @tparam I type of input data
  * @tparam O type of output data
  */
@@ -13,9 +12,29 @@ import org.scalatest.matchers.should
 trait SqlExpressionTest[I, O]
   extends should.Matchers {
 
-  protected def inputSampleToExpectedValue(input: I): O
+  /**
+   * Compute expected value from an instance of [[I]]
+   * @param input instance of [[I]]
+   * @return transformed input
+   */
 
-  protected def rowToActualValue(r: Row): O
+  protected def computeExpectedValue(input: I): O
+
+  /**
+   * Get the actual value computed by the SQL expression
+   * @param r instance of [[Row]]
+   * @return instance of [[O]]
+   */
+
+  protected def getActualValue(r: Row): O
+
+  /**
+   * Test parsing and effective definition of an SQL expression
+   * @param expression input SQL expression
+   * @param inputSamples list of input samples
+   * @param sparkSession implicit [[SparkSession]] (used for creating test [[DataFrame]] from input samples)
+   * @param evidence$1 implicit [[Encoder]] for type [[I]]
+   */
 
   def test(expression: String, inputSamples: Seq[I])
           (implicit sparkSession: SparkSession, evidence$1: Encoder[I]): Unit = {
@@ -28,8 +47,8 @@ trait SqlExpressionTest[I, O]
 
     val newColumn: Column = SqlExpressionParser.parse(expression)
 
-    val expectedValues: Seq[O] = inputSamples.map(inputSampleToExpectedValue)
-    val actualValues: Seq[O] = testDf.select(newColumn).collect().map(rowToActualValue).toSeq
+    val expectedValues: Seq[O] = inputSamples.map(computeExpectedValue)
+    val actualValues: Seq[O] = testDf.select(newColumn).collect().map(getActualValue).toSeq
     actualValues.zip(expectedValues) foreach {
       case (actual, expected) =>
         actual shouldEqual expected

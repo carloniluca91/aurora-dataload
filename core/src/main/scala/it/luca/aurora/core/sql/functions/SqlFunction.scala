@@ -3,6 +3,11 @@ package it.luca.aurora.core.sql.functions
 import net.sf.jsqlparser.expression.{Expression, Function}
 import org.apache.spark.sql.Column
 
+/**
+ * Base class for implementing a SQL function
+ * @param function instance of [[Function]]
+ */
+
 sealed abstract class SqlFunction(protected val function: Function) {
 
   protected final val functionName: String = function.getName
@@ -16,15 +21,37 @@ sealed abstract class SqlFunction(protected val function: Function) {
   }
 }
 
+/**
+ * Base class for implementing a SQL function taking a single [[Column]] as input
+ * @param function instance of [[Function]]
+ */
+
 abstract class SingleColumnFunction(override protected val function: Function)
   extends SqlFunction(function) {
 
-  def getColumn(column: Column): Column
+  /**
+   * Transform given column
+   * @param column input [[Column]]
+   * @return input column transformed by this SQL functions
+   */
+
+  def transform(column: Column): Column
 }
+
+/**
+ * Base class for implementing a SQL function taking multiple [[Column]](s) as input
+ * @param function instance of [[Function]]
+ */
 
 abstract class MultipleColumnFunction(override protected val function: Function)
   extends SqlFunction(function) {
 
-  def getColumn(columns: Column*): Column
+  /**
+   * Compute output column depending on multiple input columns
+   * @param columns list of [[Column]]
+   * @return column computed by applying this SQL function on input columns
+   */
+
+  def transform(columns: Column*): Column
 
 }

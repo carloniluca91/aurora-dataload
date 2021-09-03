@@ -31,7 +31,7 @@ object Main
     case Some(arguments) =>
 
       log.info(s"Successfully parsed input arguments.\n\n$arguments")
-      new DataloadJobRunner(arguments).run()
+      new DataloadJobRunner().run(arguments)
 
     case None => log.error(s"Unable to parse input arguments. Provided args: ${args.mkString(" ")}")
   }

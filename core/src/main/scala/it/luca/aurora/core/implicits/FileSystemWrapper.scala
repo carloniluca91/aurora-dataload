@@ -10,6 +10,13 @@ import scala.util.matching.Regex
 class FileSystemWrapper(protected val fs: FileSystem)
   extends Logging {
 
+  /**
+   * Return list of [[FileStatus]] related to files within given directory path whose name match given regex
+   * @param directoryPath [[Path]] of directory to check
+   * @param fileNameRegex [[Regex]] to be matched by valid files
+   * @return list of [[FileStatus]]
+   */
+
   def getListOfMatchingFiles(directoryPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
 
     val fileStatuses: Seq[FileStatus] = fs.listStatus(directoryPath)
@@ -25,6 +32,12 @@ class FileSystemWrapper(protected val fs: FileSystem)
     fileStatuses.filter { isValidInputFile }
   }
 
+  /**
+   * Move given file [[Path]] to a target directory [[Path]]
+   * @param filePath [[Path]] of file to move
+   * @param directoryPath [[Path]] of target directory
+   */
+
   def moveFileToDirectory(filePath: Path, directoryPath: Path): Unit = {
 
     log.info(s"Moving input file $filePath to $directoryPath")
@@ -37,6 +50,12 @@ class FileSystemWrapper(protected val fs: FileSystem)
     FileUtil.copy(fs, filePath, fs, directoryPath, true, fs.getConf)
     log.info(s"Successfully moved input file $filePath to target directory $directoryPath")
   }
+
+  /**
+   * Read content of given [[Path]] as a single string
+   * @param path [[Path]] to be read
+   * @return string representing content of given file
+   */
 
   def readFileAsString(path: Path): String = {
 

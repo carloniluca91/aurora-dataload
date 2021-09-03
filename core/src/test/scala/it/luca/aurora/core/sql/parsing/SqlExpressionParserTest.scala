@@ -1,6 +1,7 @@
 package it.luca.aurora.core.sql.parsing
 
-import it.luca.aurora.core.sql.functions.{ChangeDateFormat, FunctionName, MatchesDateOrTimestampFormat, ToDateOrTimestamp}
+import it.luca.aurora.core.sql.functions._
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Column, DataFrame, Row, SparkSession}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
@@ -9,6 +10,7 @@ import org.scalatest.matchers.should
 import java.sql.{Date, Timestamp}
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime}
+import java.util
 import scala.util.Try
 
 class SqlExpressionParserTest
@@ -43,8 +45,8 @@ class SqlExpressionParserTest
     val (inputFormatter, outputFormatter) = (DateTimeFormatter.ofPattern(inputPattern), DateTimeFormatter.ofPattern(outputPattern))
     val expression = s"${FunctionName.ChangeDateFormat}(${SqlExpressionTest.firstColumnName}, '$inputPattern', '$outputPattern')"
     val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
-      override protected def inputSampleToExpectedValue(input: String): String = LocalDate.parse(input, inputFormatter).format(outputFormatter)
-      override protected def rowToActualValue(r: Row): String = r.getString(0)
+      override protected def computeExpectedValue(input: String): String = LocalDate.parse(input, inputFormatter).format(outputFormatter)
+      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
     val minusDays: Int => String = days => LocalDate.now().minusDays(days).format(inputFormatter)
@@ -52,63 +54,111 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[MatchesDateOrTimestampFormat].getSimpleName} function (date case)" in {
+  it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {
 
-    val datePattern = "yyyy-MM-dd"
-    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(datePattern)
-    val expression = s"${FunctionName.MatchesDateFormat}(${SqlExpressionTest.firstColumnName}, '$datePattern')"
-    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
-      override protected def inputSampleToExpectedValue(input: String): Boolean = Try { LocalDate.parse(input, formatter) }.isSuccess
-      override protected def rowToActualValue(r: Row): Boolean = r.getBoolean(0)
+    val doubleSpace = "  "
+    val samples: Seq[String] = "hello" :: "world" :: Nil
+    val testSet: Map[String, (String => String, String => String)] = Map(
+      FunctionName.LeftTrim -> (StringUtils.stripStart(_, null), doubleSpace.concat),
+      FunctionName.RightTrim -> (StringUtils.stripEnd(_, null), s => s.concat(doubleSpace)),
+      FunctionName.Trim -> (StringUtils.trim, s => doubleSpace.concat(s).concat(doubleSpace)))
+
+    testSet.foreach {
+      case (key, (expectedF, sampleGeneratorF)) =>
+        val expression = s"$key(${SqlExpressionTest.firstColumnName})"
+        val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
+          override protected def computeExpectedValue(input: String): String = expectedF(input)
+          override protected def getActualValue(r: Row): String = r.getString(0)
+        }
+
+        val inputSamples: Seq[String] = samples.map(sampleGeneratorF)
+        functionTest.test(expression, inputSamples)
+    }
+  }
+
+  it should s"parse a ${classOf[LeftOrRightPad].getSimpleName} function" in {
+
+    val (len, padding): (Int, String) = (10, "0")
+    val testSet: Map[String, String => String] = Map(
+      FunctionName.LeftPad -> (StringUtils.leftPad(_, len, padding)),
+      FunctionName.RightPad -> (StringUtils.rightPad(_, len, padding))
+    )
+
+    testSet.foreach {
+      case (key, expectedF) =>
+        val expression = s"$key(${SqlExpressionTest.firstColumnName}, $len, '$padding')"
+        val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
+          override protected def computeExpectedValue(input: String): String = expectedF(input)
+          override protected def getActualValue(r: Row): String = r.getString(0)
+        }
+
+        val inputSamples: Seq[String] = "hello" :: "world" :: Nil
+        functionTest.test(expression, inputSamples)
+    }
+  }
+
+  it should s"parse a ${classOf[MatchesDateOrTimestampFormat].getSimpleName} function" in {
+
+    val (dtPattern, tsPattern) = ("yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss")
+    val (dtFormatter, tsFormatter) = (DateTimeFormatter.ofPattern(dtPattern), DateTimeFormatter.ofPattern(tsPattern))
+    val dtWithPattern: String => String = s => LocalDate.now().format(DateTimeFormatter.ofPattern(s))
+    val tsWithPattern: String => String = s => LocalDateTime.now().format(DateTimeFormatter.ofPattern(s))
+
+    val testSet: Map[String, (String, String => Boolean, String => String)] = Map(
+      FunctionName.MatchesDateFormat -> (dtPattern, s => Try {
+        LocalDate.parse(s, dtFormatter)
+      }.isSuccess, dtWithPattern),
+      FunctionName.MatchesTimestampFormat -> (tsPattern, s => Try {
+        LocalDateTime.parse(s, tsFormatter)
+      }.isSuccess, tsWithPattern))
+
+    testSet.foreach {
+      case (key, (pattern, expectedF, sampleGeneratorF)) =>
+        val expression = s"$key(${SqlExpressionTest.firstColumnName}, '$pattern')"
+        val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+          override protected def computeExpectedValue(input: String): Boolean = expectedF(input)
+          override protected def getActualValue(r: Row): Boolean = r.getBoolean(0)
+        }
+
+        val inputSamples: Seq[String] = sampleGeneratorF(pattern) :: sampleGeneratorF("dd/MM/yyyy") :: Nil
+        functionTest.test(expression, inputSamples)
+    }
+  }
+
+  it should s"parse a ${classOf[Substring].getSimpleName} function" in {
+
+    val (pos, len): (Int, Int) = (1, 2)
+    val expression = s"${FunctionName.Substring}(${SqlExpressionTest.firstColumnName}, $pos, $len)"
+    val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
+      override protected def computeExpectedValue(input: String): String = input.substring(pos - 1, len - pos + 1)
+      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
-    val formatWithPattern: String => String = pattern => LocalDate.now().format(DateTimeFormatter.ofPattern(pattern))
-    val inputSamples: Seq[String] = formatWithPattern(datePattern) :: formatWithPattern("yyyy/MM/dd") :: Nil
+    val inputSamples: Seq[String] = "hello" :: "world" :: Nil
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[MatchesDateOrTimestampFormat].getSimpleName} function (timestamp case)" in {
+  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function" in {
 
-    val timestampPattern = "yyyy-MM-dd HH:mm:ss"
-    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(timestampPattern)
-    val expression = s"${FunctionName.MatchesTimestampFormat}(${SqlExpressionTest.firstColumnName}, '$timestampPattern')"
-    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
-      override protected def inputSampleToExpectedValue(input: String): Boolean = Try { LocalDateTime.parse(input, formatter) }.isSuccess
-      override protected def rowToActualValue(r: Row): Boolean = r.getBoolean(0)
+    val (dtPattern, tsPattern) = ("yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss")
+    val (dtFormatter, tsFormatter) = (DateTimeFormatter.ofPattern(dtPattern), DateTimeFormatter.ofPattern(tsPattern))
+    val dtGenerator: Int => String = i => LocalDate.now().minusDays(i).format(dtFormatter)
+    val tsGenerator: Int => String = i => LocalDateTime.now().minusMinutes(i).format(tsFormatter)
+    val testSet: Map[String, (String, Int => String, String => util.Date, Row => util.Date)] = Map(
+      FunctionName.ToDate -> (dtPattern, dtGenerator, s => Date.valueOf(LocalDate.parse(s, dtFormatter)), r => r.getDate(0)),
+      FunctionName.ToTimestamp -> (tsPattern, tsGenerator, s => Timestamp.valueOf(LocalDateTime.parse(s, tsFormatter)), r => r.getTimestamp(0))
+    )
+
+    testSet.foreach {
+      case (key, (pattern, sampleGeneratorF, expectedF, actualValueF)) =>
+        val expression = s"$key(${SqlExpressionTest.firstColumnName}, '$pattern')"
+        val functionTest: SqlExpressionTest[String, _ <: util.Date] = new SqlExpressionTest[String, util.Date] {
+          override protected def computeExpectedValue(input: String): util.Date = expectedF(input)
+          override protected def getActualValue(r: Row): util.Date = actualValueF(r)
+        }
+
+        val inputSamples: Seq[String] = sampleGeneratorF(5) :: sampleGeneratorF(0) :: Nil
+        functionTest.test(expression, inputSamples)
     }
-
-    val formatWithPattern: String => String = pattern => LocalDateTime.now().format(DateTimeFormatter.ofPattern(pattern))
-    val inputSamples: Seq[String] = formatWithPattern(timestampPattern) :: formatWithPattern("yyyy/MM/dd HH:mm:ss") :: Nil
-    functionTest.test(expression, inputSamples)
-  }
-
-  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function (date case)" in {
-
-    val datePattern = "yyyy-MM-dd"
-    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(datePattern)
-    val expression = s"${FunctionName.ToDate}(${SqlExpressionTest.firstColumnName}, '$datePattern')"
-    val functionTest: SqlExpressionTest[String, Date] = new SqlExpressionTest[String, Date] {
-      override protected def inputSampleToExpectedValue(input: String): Date = Date.valueOf(LocalDate.parse(input, formatter))
-      override protected def rowToActualValue(r: Row): Date = r.getDate(0)
-    }
-
-    val minusDays: Int => String = days => LocalDate.now().minusDays(days).format(formatter)
-    val inputSamples: Seq[String] = minusDays(1) :: minusDays(0):: Nil
-    functionTest.test(expression, inputSamples)
-  }
-
-  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function (timestamp case)" in {
-
-    val timestampPattern = "yyyy-MM-dd HH:mm:ss"
-    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(timestampPattern)
-    val expression = s"${FunctionName.ToTimestamp}(${SqlExpressionTest.firstColumnName}, '$timestampPattern')"
-    val functionTest: SqlExpressionTest[String, Timestamp] = new SqlExpressionTest[String, Timestamp] {
-      override protected def inputSampleToExpectedValue(input: String): Timestamp = Timestamp.valueOf(LocalDateTime.parse(input,formatter))
-      override protected def rowToActualValue(r: Row): Timestamp = r.getTimestamp(0)
-    }
-
-    val minusMinutes: Int => String = minutes => LocalDateTime.now().minusMinutes(minutes).format(formatter)
-    val inputSamples: Seq[String] = minusMinutes(5) :: minusMinutes(0) :: Nil
-    functionTest.test(expression, inputSamples)
   }
 }

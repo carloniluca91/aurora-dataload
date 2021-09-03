@@ -8,7 +8,7 @@ import org.apache.spark.sql.functions.{date_format, to_date}
 case class ChangeDateFormat(override protected val function: expression.Function)
   extends SingleColumnFunction(function) {
 
-  override def getColumn(column: Column): Column = {
+  override def transform(column: Column): Column = {
 
     val inputPattern: String = getFunctionParameter[StringValue, String](1, _.getValue)
     val outputPattern: String = getFunctionParameter[StringValue, String](2, _.getValue)

@@ -28,7 +28,7 @@ abstract class SqlExpressionTest[T, R]
 
     val expectedValues: Seq[R] = testDf.collect().map(expectedValuesFunction).toSeq
     val singleColumnFunction: SingleColumnFunction = createSingleColumnFunction(function)
-    val actualValues: Seq[R] = testDf.select(singleColumnFunction.getColumn(col(testDf.columns.head)))
+    val actualValues: Seq[R] = testDf.select(singleColumnFunction.transform(col(testDf.columns.head)))
       .collect().map(r => r.getAs[R](0))
 
     actualValues.zip(expectedValues) foreach {

@@ -14,17 +14,22 @@ import java.io.File
 import java.sql.{Connection, DriverManager, SQLException}
 import scala.util.{Failure, Success, Try}
 
-class DataloadJobRunner(protected val cliArguments: CliArguments)
+class DataloadJobRunner
   extends Logging {
 
-  protected final val dataSourceId: String = cliArguments.dataSource
+  /**
+   * Setup and run ingestion job for given arguments
+   * @param cliArguments instance of [[CliArguments]]
+   */
 
-  def run(): Unit = {
+  def run(cliArguments: CliArguments): Unit = {
 
+    val yamlFileName: String = cliArguments.yamlFileName
+    val dataSourceId: String = cliArguments.dataSource
     Try {
 
       // Deserialize application's .yaml file
-      val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml]).withInterpolation()
+      val yaml: ApplicationYaml = deserializeFile(new File(yamlFileName), classOf[ApplicationYaml]).withInterpolation()
       val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId)
       val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
 

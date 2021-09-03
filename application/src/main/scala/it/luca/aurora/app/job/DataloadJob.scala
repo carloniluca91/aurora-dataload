@@ -28,6 +28,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   protected final val dataSourceId: String = dataSourceMetadata.getId
   protected final val yarnUiUrl: String = yaml.getProperty("yarn.ui.url")
 
+  /**
+   * Run ingestion job for each valid input file
+   * @param inputFiles valid [[FileStatus]](es)
+   */
+
   def processFiles(inputFiles: Seq[FileStatus]): Unit = {
 
     val landingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
@@ -55,6 +60,12 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       writeDataloadJobRecords(dataloadJobRecords)
     }
   }
+
+  /**
+   * Run ingestion job for a valid input file
+   * @param fileStatus valid [[FileStatus]]
+   * @return instance of [[Try]] (i.e. a [[Success]] if ingestion job succeeded, a [[Failure]] instead)
+   */
 
   protected def processFile(fileStatus: FileStatus): Try[Unit] = {
 
@@ -109,6 +120,13 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     }
   }
 
+  /**
+   * Create a [[DataloadJobRecord]] for given [[Path]] and potential exception raised by ingestion job
+   * @param filePath [[Path]] of ingested file
+   * @param exceptionOpt potential exception raised by ingestion job
+   * @return [[DataloadJobRecord]]
+   */
+
   protected final def buildDataloadJobRecord(filePath: Path, exceptionOpt: Option[Throwable]): DataloadJobRecord = {
 
     DataloadJobRecord(sparkContext = sparkSession.sparkContext,
@@ -117,6 +135,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       filePath = filePath,
       exceptionOpt = exceptionOpt)
   }
+
+  /**
+   * Save some [[DataloadJobRecord]]
+   * @param records instances of [[DataloadJobRecord]]
+   */
 
   protected def writeDataloadJobRecords(records: Seq[DataloadJobRecord]): Unit = {
 

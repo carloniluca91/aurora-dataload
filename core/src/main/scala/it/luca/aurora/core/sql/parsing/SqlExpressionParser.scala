@@ -17,7 +17,7 @@ object SqlExpressionParser
 
   /**
    * Converts a string representing a SQL expression to a [[Column]]
-   * @param input input string
+   * @param input input SQL string
    * @throws it.luca.aurora.core.sql.parsing.UnidentifiedExpressionException if parsing fails
    * @return instance of [[Column]]
    */
@@ -55,16 +55,15 @@ object SqlExpressionParser
     }
   }
 
-  def parse(expression: Expression): Column = parse(expression.toString)
+  protected def parse(expression: Expression): Column = parse(expression.toString)
 
   /**
    * Converts a subclass of [[BinaryExpression]] to a [[Column]]
-   *
    * @param expression input expression
    * @return instance of [[Column]]
    */
 
-  def parseSqlBinaryExpression(expression: BinaryExpression): Column = {
+  protected def parseSqlBinaryExpression(expression: BinaryExpression): Column = {
 
     // BinaryExpressions (<, <=, =, <>, >, >=, AND, OR)
     val leftColumn = parse(expression.getLeftExpression)
@@ -86,12 +85,11 @@ object SqlExpressionParser
 
   /**
    * Converts an instance of [[IsNullExpression]] to a [[Column]]
-   *
    * @param expression input expression
    * @return instance of [[Column]]
    */
 
-  def parseIsNullExpression(expression: IsNullExpression): Column = {
+  protected def parseIsNullExpression(expression: IsNullExpression): Column = {
 
     val leftColumn = parse(expression.getLeftExpression)
     log.debug(s"Parsed left expression for ${classOf[IsNullExpression].getSimpleName}")
@@ -100,12 +98,11 @@ object SqlExpressionParser
 
   /**
    * Converts an instance of [[InExpression]] to a [[Column]]
-   *
    * @param expression input expression
    * @return instance of [[Column]]
    */
 
-  def parseInExpression(expression: InExpression): Column = {
+  protected def parseInExpression(expression: InExpression): Column = {
 
     val leftColumn = parse(expression.getLeftExpression)
     val inValuesColumns: Seq[Column] = expression
@@ -125,7 +122,7 @@ object SqlExpressionParser
    * @return instance of [[Column]]
    */
 
-  def parseCaseExpression(expression: CaseExpression): Column = {
+  protected def parseCaseExpression(expression: CaseExpression): Column = {
 
     val whenCases: Seq[(Column, Column)] = expression.getWhenClauses.map(x => (parse(x.getWhenExpression), parse(x.getThenExpression)))
     val elseValue: Column = parse(expression.getElseExpression)
@@ -143,18 +140,19 @@ object SqlExpressionParser
    * @return instance of [[Column]]
    */
 
-  def parseSqlFunction(function: expression.Function): Column = {
+  protected def parseSqlFunction(function: expression.Function): Column = {
 
-    // Standard Sql functions
+    // Standard SQL functions
     val sqlFunction: SqlFunction = function.getName.toLowerCase match {
 
       case FunctionName.ChangeDateFormat => ChangeDateFormat(function)
       //case "concat" => Concat(function)
       //case "concat_ws" => ConcatWs(function)
-      //case "lpad" | "rpad" => LeftOrRightPad(function)
-      //case "substring" => Substring(function)
+      case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
+      case FunctionName.Substring => Substring(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
+      case FunctionName.LeftTrim | FunctionName.RightTrim | FunctionName.Trim => LeftOrRightOrBothTrim(function)
       case _ => throw new UnmatchedSQLFunction(function)
     }
 
@@ -162,7 +160,7 @@ object SqlExpressionParser
       case s: SingleColumnFunction =>
 
         val inputColumn = parse(function.getParameters.getExpressions.get(0))
-        s.getColumn(inputColumn)
+        s.transform(inputColumn)
 
       case m: MultipleColumnFunction =>
 
@@ -176,7 +174,7 @@ object SqlExpressionParser
 
         val inputColumns: Seq[Column] = inputColumnExpressions.map(parse)
         log.info(s"Parsed all of ${inputColumnExpressions.size()} input column(s) for ${m.getClass.getSimpleName} function")
-        m.getColumn(inputColumns: _*)
+        m.transform(inputColumns: _*)
     }
   }
 }
