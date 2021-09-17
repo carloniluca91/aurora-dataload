@@ -1,4 +1,5 @@
 package it.luca.aurora.core.sql.functions
+
 import net.sf.jsqlparser.expression
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{ltrim, rtrim, trim}

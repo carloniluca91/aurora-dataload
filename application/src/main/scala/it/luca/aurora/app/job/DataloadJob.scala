@@ -116,7 +116,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
       saveAsOrInsertInto(validRecordsDataFrame, trustedTable, partitionColumnName)
       saveAsOrInsertInto(invalidRecordsDataFrame, errorTable, partitionColumnName)
-      log.info(s"Successfully ingested file ${filePath.toString}")
+      log.info(s"Successfully ingested file $filePath")
     }
   }
 

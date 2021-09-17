@@ -1,4 +1,5 @@
 package it.luca.aurora.core.sql.functions
+
 import net.sf.jsqlparser.expression
 import net.sf.jsqlparser.expression.{LongValue, StringValue}
 import org.apache.spark.sql.Column

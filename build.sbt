@@ -8,8 +8,8 @@ val jsqlParserVersion = "4.0"
 val jacksonVersion = "2.9.9"
 
 // Compile dependencies
-lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion
-lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion
+lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provided
+lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % Provided
 lazy val scopt = "com.github.scopt" %% "scopt" % scoptVersion
 lazy val jacksonYaml = "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion
 lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
@@ -43,10 +43,9 @@ lazy val commonSettings = Seq(
     "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
 )
 
+lazy val extensionsToExclude: Seq[String] = "properties" :: "xml" :: "yaml" :: Nil
 lazy val dataload = (project in file("."))
-  .settings(
-    name := "aurora-dataload"
-  )
+  .settings(name := "aurora-dataload")
   .aggregate(application, core, configuration)
 
 lazy val application = (project in file("application"))
@@ -59,7 +58,14 @@ lazy val application = (project in file("application"))
       scalaTest ::
       scalaMock :: Nil,
 
-    assemblyJarName in assembly := s"${name.value}.jar",
+    // Exclude all resources related to extensions to exclude
+    (unmanagedResources in Compile) := (unmanagedResources in Compile).value
+      .filterNot(x => extensionsToExclude.map {
+        extension => x.getName.endsWith(s".$extension")
+      }.reduce(_ || _)),
+
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
+    assemblyJarName in assembly := s"aurora_dataload.jar",
     assemblyMergeStrategy in assembly := {
       case PathList("META-INF", _*) => MergeStrategy.discard
       case x =>

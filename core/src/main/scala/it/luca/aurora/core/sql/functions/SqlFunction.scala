@@ -11,13 +11,13 @@ import org.apache.spark.sql.Column
 sealed abstract class SqlFunction(protected val function: Function) {
 
   protected final val functionNameLowerCase: String = function.getName.toLowerCase
-  protected final def getFunctionParameter[R <: Expression, T](index: Int, parameterConversion: R => T): T = {
+  protected final def getFunctionParameter[R <: Expression, T](index: Int, conversion: R => T): T = {
 
     val nthParameterExpression: R = function.getParameters
       .getExpressions.get(index)
       .asInstanceOf[R]
 
-    parameterConversion(nthParameterExpression)
+    conversion(nthParameterExpression)
   }
 }
 

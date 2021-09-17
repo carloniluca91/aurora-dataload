@@ -88,17 +88,6 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[IsBlank].getSimpleName} function" in {
-
-    val expression = s"${FunctionName.IsBlank}(${SqlExpressionTest.firstColumnName})"
-    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
-      override protected def computeExpectedValue(input: String): Boolean = StringUtils.isBlank(input)
-    }
-
-    val inputSamples: Seq[String] = "" :: "  " :: "hello" :: "  world" :: Nil
-    functionTest.test(expression, inputSamples)
-  }
-
   it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {
 
     val doubleSpace = "  "
@@ -167,6 +156,17 @@ class SqlExpressionParserTest
     }
   }
 
+  it should s"parse a ${classOf[NeitherNullOrBlank].getSimpleName} function" in {
+
+    val expression = s"${FunctionName.NeitherNullOrBlank}(${SqlExpressionTest.firstColumnName})"
+    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+      override protected def computeExpectedValue(input: String): Boolean = Option(input).isDefined && !StringUtils.isBlank(input)
+    }
+
+    val inputSamples: Seq[String] = null :: "" :: "  " :: "hello" :: "  world" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
   it should s"parse a ${classOf[Substring].getSimpleName} function" in {
 
     val (pos, len): (Int, Int) = (1, 2)
@@ -195,6 +195,7 @@ class SqlExpressionParserTest
         val expression = s"$key(${SqlExpressionTest.firstColumnName}, '$pattern')"
         val functionTest: SqlExpressionTest[String, _ <: util.Date] = new SqlExpressionTest[String, util.Date] {
           override protected def computeExpectedValue(input: String): util.Date = expectedF(input)
+          override protected def getActualValue(r: Row): util.Date = actualValueF(r)
         }
 
         val inputSamples: Seq[String] = sampleGeneratorF(5) :: sampleGeneratorF(0) :: Nil
