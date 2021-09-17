@@ -13,6 +13,6 @@ properties:
 
 dataSources:
   -
-    id: OCS_DAILY
-    metadataFilePath: ${datasources.metadata.root}/ocs_daily.json
+    id: OCS
+    metadataFilePath: ${datasources.metadata.root}/ocs.json
 

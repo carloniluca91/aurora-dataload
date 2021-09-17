@@ -29,7 +29,7 @@ object SqlExpressionParser
       case Right(column) => column
       case Left(str) =>
 
-        val outputColumn: Column = CCJSqlParserUtil.parseExpression(str, false) match {
+        val outputColumn: Column = CCJSqlParserUtil.parseCondExpression(str, false) match {
 
           case c: schema.Column => col(c.getColumnName)
           case s: StringValue => lit(s.getValue)
@@ -60,8 +60,8 @@ object SqlExpressionParser
 
     // Define a map holding regexes and related match-to-column conversion
     val specialCasesMap: Map[String, (Regex, Regex.Match => Column)] = Map(
-      "ALIAS" -> ("^(\\w+(\\(.+\\))?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(3))),
-      "CAST" -> ("^cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2)))
+      "ALIAS" -> ("^(\\w+(\\(.+\\))?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(3))),
+      "CAST" -> ("^cast\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2)))
     )
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion
@@ -141,13 +141,25 @@ object SqlExpressionParser
 
   protected def parseCaseExpression(expression: CaseExpression): Column = {
 
-    val whenCases: Seq[(Column, Column)] = expression.getWhenClauses.map(x => (parse(x.getWhenExpression), parse(x.getThenExpression)))
-    val elseValue: Column = parse(expression.getElseExpression)
-    log.debug(s"Parsed both all of ${expression.getWhenClauses.size()} ${classOf[WhenClause].getSimpleName}(s) and ElseExpression")
+    val whenCases: Seq[(Column, Column)] = expression.getWhenClauses
+      .map { x => (parse(x.getWhenExpression), parse(x.getThenExpression)) }
+
+    log.debug(s"Parsed both all of ${expression.getWhenClauses.size()} ${classOf[WhenClause].getSimpleName}(s)")
     val firstCase: Column = when(whenCases.head._1, whenCases.head._2)
-    whenCases.tail
-      .foldLeft(firstCase)((col, tuple2) => col.when(tuple2._1, tuple2._2))
-      .otherwise(elseValue)
+    val caseWhenCol: Column = whenCases.tail
+      .foldLeft(firstCase) {
+        case (col, tuple2) => col.when(tuple2._1, tuple2._2)
+      }
+
+    Option(expression.getElseExpression) match {
+      case Some(expression) =>
+        val elseExpression: Column = parse(expression)
+        log.debug(s"Successfully parsed default expression $expression")
+        caseWhenCol.otherwise(elseExpression)
+      case None =>
+        log.debug("No default expression expressed (default will be null)")
+        caseWhenCol
+    }
   }
 
   /**
@@ -164,6 +176,8 @@ object SqlExpressionParser
       case FunctionName.Concat => Concat(function)
       case FunctionName.ConcatWs => ConcatWs(function)
       case FunctionName.DateFormat => DateFormat(function)
+      case FunctionName.DecodeFlag => DecodeFlag(function)
+      case FunctionName.IsFlag => IsFlag(function)
       case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.NeitherNullOrBlank => NeitherNullOrBlank(function)

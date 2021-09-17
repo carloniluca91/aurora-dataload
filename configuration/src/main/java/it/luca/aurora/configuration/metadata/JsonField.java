@@ -6,7 +6,7 @@ public final class JsonField {
     public static final String COLUMN_NAME = "columnName";
     public static final String CONFIGURATION = "configuration";
     public static final String DATASOURCE_PATHS = "datasourcePaths";
-    public static final String DROP_COLUMNS = "dropDuplicates";
+    public static final String DROP_COLUMNS = "dropColumns";
     public static final String DROP_DUPLICATES = "dropDuplicates";
     public static final String ERROR = "error";
     public static final String EXTRACT = "extract";
@@ -29,5 +29,4 @@ public final class JsonField {
     public static final String TRANSFORMATIONS = "transformations";
     public static final String TRUSTED = "trusted";
     public static final String TYPE = "type";
-    public static final String VERSION = "version";
 }

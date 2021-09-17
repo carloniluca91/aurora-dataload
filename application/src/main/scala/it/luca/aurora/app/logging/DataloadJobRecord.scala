@@ -26,6 +26,9 @@ case class DataloadJobRecord(applicationId: String,
 
 object DataloadJobRecord {
 
+  val OK = "OK"
+  val KO = "KO"
+
   /**
    * Create an instance of [[DataloadJobRecord]]
    * @param sparkContext [[SparkContextWrapper]] of current Spark application
@@ -50,7 +53,7 @@ object DataloadJobRecord {
       dataSourceId = dataSource.getId,
       metadataFilePath = dataSource.getMetadataFilePath,
       ingestedFile = filePath.toString,
-      ingestionOperationCode = exceptionOpt.map(_ => "KO").getOrElse("OK"),
+      ingestionOperationCode = exceptionOpt.map(_ => KO).getOrElse(OK),
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),
       exceptionMessage = exceptionOpt.map(x => x.getMessage),
       yarnApplicationUiUrl = s"$yarnUiUrl/$appId",

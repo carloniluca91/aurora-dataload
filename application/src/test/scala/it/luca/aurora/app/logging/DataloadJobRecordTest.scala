@@ -52,7 +52,7 @@ class DataloadJobRecordTest
     val throwable: IllegalArgumentException = new IllegalArgumentException("exceptionMsg")
     val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, Some(throwable))
 
-    record.ingestionOperationCode shouldEqual "KO"
+    record.ingestionOperationCode shouldEqual DataloadJobRecord.KO
     record.exceptionClass shouldEqual Some(throwable.getClass.getName)
     record.exceptionMessage shouldEqual Some(throwable.getMessage)
   }
@@ -61,7 +61,7 @@ class DataloadJobRecordTest
 
     val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, None)
 
-    record.ingestionOperationCode shouldEqual "OK"
+    record.ingestionOperationCode shouldEqual DataloadJobRecord.OK
     record.exceptionClass shouldEqual None
     record.exceptionMessage shouldEqual None
   }

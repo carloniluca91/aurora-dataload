@@ -12,21 +12,21 @@ class FileSystemWrapper(protected val fs: FileSystem)
 
   /**
    * Return list of [[FileStatus]] related to files within given directory path whose name match given regex
-   * @param directoryPath [[Path]] of directory to check
+   * @param dirPath [[Path]] of directory to check
    * @param fileNameRegex [[Regex]] to be matched by valid files
    * @return list of [[FileStatus]]
    */
 
-  def getListOfMatchingFiles(directoryPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
+  def getListOfMatchingFiles(dirPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
 
-    val fileStatuses: Seq[FileStatus] = fs.listStatus(directoryPath)
+    val fileStatuses: Seq[FileStatus] = fs.listStatus(dirPath)
     val isValidInputFile: FileStatus => Boolean = f => f.isFile && fileNameRegex.findFirstMatchIn(f.getPath.getName).isDefined
     val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
     if (invalidInputPaths.nonEmpty) {
 
       val fileOrDirectory: FileStatus => String = x => if (x.isDirectory) "directory" else "file"
       val invalidInputPathsStr = s"${invalidInputPaths.map { x => s"  Name: ${x.getPath.getName} (${fileOrDirectory(x)}})" }.mkString("\n")}"
-      log.warn(s"Found ${invalidInputPaths.size} invalid file(s) (or directories) at path $directoryPath.\n$invalidInputPathsStr")
+      log.warn(s"Found ${invalidInputPaths.size} invalid file(s) (or directories) at path $dirPath.\n$invalidInputPathsStr")
     }
 
     fileStatuses.filter { isValidInputFile }
@@ -34,21 +34,22 @@ class FileSystemWrapper(protected val fs: FileSystem)
 
   /**
    * Move given file [[Path]] to a target directory [[Path]]
-   * @param filePath [[Path]] of file to move
-   * @param directoryPath [[Path]] of target directory
+   * @param file [[Path]] of file to move
+   * @param targetDir [[Path]] of target directory
+   * @param fsPermission [[FsPermission]] to be used for creating target directory (if it does not exist)
    */
 
-  def moveFileToDirectory(filePath: Path, directoryPath: Path): Unit = {
+  def moveFileToDirectory(file: Path, targetDir: Path, fsPermission: FsPermission): Unit = {
 
-    log.info(s"Moving input file $filePath to $directoryPath")
-    if (!fs.exists(directoryPath)) {
-      log.warn(s"Target directory $directoryPath does not exist. Creating it now")
-      fs.mkdirs(directoryPath, new FsPermission(644.toShort))
-      log.info(s"Successfully created target directory $directoryPath")
+    log.info(s"Moving input file $file to $targetDir")
+    if (!fs.exists(targetDir)) {
+      log.warn(s"Target directory $targetDir does not exist. Creating it now")
+      fs.mkdirs(targetDir, fsPermission)
+      log.info(s"Successfully created target directory $targetDir")
     }
 
-    FileUtil.copy(fs, filePath, fs, directoryPath, true, fs.getConf)
-    log.info(s"Successfully moved input file $filePath to target directory $directoryPath")
+    FileUtil.copy(fs, file, fs, targetDir, true, fs.getConf)
+    log.info(s"Successfully moved input file $file to target directory $targetDir")
   }
 
   /**

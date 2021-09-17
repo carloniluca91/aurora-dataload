@@ -1,7 +1,6 @@
 package it.luca.aurora.core
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 import java.sql.{Connection, SQLException}
 
@@ -19,24 +18,24 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
                                    fqTableName: String,
                                    partitionColumn: String): Unit = {
 
-    val saveMode = SaveMode.Append
-    val dfClass: String = classOf[DataFrame].getSimpleName
-    val cachedDataFrame: DataFrame = dataFrame.cache()
-    if (cachedDataFrame.isEmpty) {
+    val (saveMode, dfClass, cachedDf): (SaveMode, String, DataFrame) = (SaveMode.Append, classOf[DataFrame].getSimpleName, dataFrame.cache())
+    if (cachedDf.isEmpty) {
       log.warn(s"Given $dfClass for target table $fqTableName is empty. Thus, no data will be written to it")
     } else {
 
-      log.info(s"Saving given $dfClass to target table $fqTableName. Schema\n\n${cachedDataFrame.schema.treeString}")
+      log.info(s"Saving given $dfClass to target table $fqTableName. Schema\n\n${cachedDf.schema.treeString}")
       val tableExists: Boolean = sparkSession.catalog.tableExists(fqTableName)
       if (tableExists) {
         log.info(s"Target table $fqTableName already exists. Matching given $dfClass to it and saving using .insertInto")
-        cachedDataFrame.select(sparkSession.table(fqTableName).columns.map(col): _*)
+        val targetTableColumns: Seq[String] = sparkSession.table(fqTableName).columns
+        cachedDf.selectExpr(targetTableColumns: _*)
           .write.mode(saveMode)
           .insertInto(fqTableName)
       } else {
         log.warn(s"Target table $fqTableName does not exist. Creating it now using .saveAsTable")
-        cachedDataFrame.write
-          .mode(saveMode).format("parquet")
+        cachedDf.write
+          .mode(saveMode)
+          .format("parquet")
           .partitionBy(partitionColumn)
           .saveAsTable(fqTableName)
       }

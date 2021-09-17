@@ -7,6 +7,8 @@ object FunctionName extends Enumeration {
   val Concat = "concat"
   val ConcatWs = "concat_ws"
   val DateFormat = "date_format"
+  val DecodeFlag = "decode_flag"
+  val IsFlag = "is_flag"
   val LeftPad = "lpad"
   val LeftTrim = "ltrim"
   val MatchesDateFormat = "matches_date_format"

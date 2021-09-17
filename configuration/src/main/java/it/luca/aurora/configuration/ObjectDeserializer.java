@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 @Slf4j
 public class ObjectDeserializer {
@@ -20,6 +21,18 @@ public class ObjectDeserializer {
 
     private final static ObjectMapper yamlMapper = new YAMLMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    protected static ObjectMapper resolverMapper(DataFormat dataFormat) {
+
+        ObjectMapper mapper;
+        switch (dataFormat) {
+            case JSON: mapper = jsonMapper; break;
+            case YAML: mapper = yamlMapper; break;
+            default: throw new IllegalArgumentException(String.format("Unmatched %s: %s", DataFormat.class.getSimpleName(), dataFormat.name()));
+        }
+
+        return mapper;
+    }
 
     /**
      * Converts a file to instance of type [[T]]
@@ -41,6 +54,15 @@ public class ObjectDeserializer {
         return instance;
     }
 
+    public static <T> T deserializeStream(InputStream stream, Class<T> tClass, DataFormat dataFormat) throws IOException {
+
+        String streamClassName = stream.getClass().getSimpleName();
+        String className = tClass.getSimpleName();
+        log.info("Deserializing input {} as an instance of {}", streamClassName, className);
+        T instance = resolverMapper(dataFormat).readValue(stream, tClass);
+        log.info("Successfully deserialized input {} as an instance of {}", streamClassName, className);
+        return instance;
+    }
 
     /**
      * Converts a string to instance of type [[T]]
@@ -56,15 +78,8 @@ public class ObjectDeserializer {
 
         String dataFormatName = dataFormat.name().toLowerCase();
         String className = tClass.getSimpleName();
-        ObjectMapper mapper;
-        switch (dataFormat) {
-            case JSON: mapper = jsonMapper; break;
-            case YAML: mapper = yamlMapper; break;
-            default: throw new IllegalArgumentException(String.format("Unmatched %s: %s", DataFormat.class.getSimpleName(), dataFormatName));
-        }
-
         log.info("Deserializing given {} string as an instance of {}", dataFormatName, className);
-        T instance = mapper.readValue(string, tClass);
+        T instance = resolverMapper(dataFormat).readValue(string, tClass);
         log.info("Successfully deserialized given {} string as an instance of {}", dataFormatName, className);
         return instance;
     }

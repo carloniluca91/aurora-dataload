@@ -42,12 +42,12 @@ else
   applicationName="Aurora Dataload App - $dataSourceName"
   applicationLibDir=hdfs:///user/osboxes/apps/aurora_dataload/lib
   applicationJar="$applicationLibDir/aurora_dataload.jar"
-  applicationLog4File=spark_log4j2.xml
   applicationYamlFile=spark_application.yaml
+  applicationLog4File=spark_application_log4j2.xml
 
-  applicationLog4jXmlPath="$applicationLibDir/$applicationLog4File"
   applicationYamlPath="$applicationLibDir/$applicationYamlFile"
-  sparkSubmitFiles=$applicationLog4jXmlPath,$applicationYamlPath
+  applicationLog4jXmlPath="$applicationLibDir/$applicationLog4File"
+  sparkSubmitFiles=$applicationYamlPath,$applicationLog4jXmlPath
 
   mainClass=it.luca.aurora.app.Main
   yamlFileOpt="-y"

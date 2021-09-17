@@ -39,7 +39,7 @@ class SqlExpressionParserTest
     testDf.select(column).columns.head shouldEqual SqlExpressionTest.secondColumnName
   }
 
-  it should s"parse a casting expression" in {
+  it should s"parse a CAST expression" in {
 
     val expression = s"cast(${SqlExpressionTest.firstColumnName} as int)"
     val functionTest: SqlExpressionTest[String, Int] = new SqlExpressionTest[String, Int] {
@@ -47,6 +47,18 @@ class SqlExpressionParserTest
     }
 
     val inputSamples: Seq[String] = "01" :: "02" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
+  it should s"parse a IN expression" in {
+
+    val inClauseValues: Seq[String] = "1" :: "2" :: Nil
+    val expression = s"${SqlExpressionTest.firstColumnName} in (${inClauseValues.map(s => s"'$s'").mkString(", ")})"
+    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+      override protected def computeExpectedValue(input: String): Boolean = inClauseValues.contains(input)
+    }
+
+    val inputSamples: Seq[String] = "1" :: "2" :: "3" :: Nil
     functionTest.test(expression, inputSamples)
   }
 
