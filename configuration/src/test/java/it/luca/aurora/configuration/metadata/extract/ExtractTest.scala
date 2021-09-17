@@ -12,13 +12,13 @@ class ExtractTest
     with should.Matchers {
 
   s"An ${classOf[Extract].getSimpleName}" should
-    s"be deserialized as an instance of ${classOf[CsvExtract].getSimpleName} when ${JsonField.TYPE} = ${ExtractType.CSV}" in {
+    s"be deserialized as an instance of ${classOf[CsvExtract].getSimpleName} when ${JsonField.TYPE} = ${Extract.CSV}" in {
 
     val fileNameRegex = "fileNameRegex"
     val json =
       s"""
         |{
-        |   "${JsonField.TYPE}": "${ExtractType.CSV}",
+        |   "${JsonField.TYPE}": "${Extract.CSV}",
         |   "${JsonField.FILE_NAME_REGEX}": "fileNameRegex",
         |   "${JsonField.CONFIGURATION}": {
         |     "${JsonField.OPTIONS}": {

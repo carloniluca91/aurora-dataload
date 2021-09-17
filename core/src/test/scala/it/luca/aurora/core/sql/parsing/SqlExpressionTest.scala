@@ -27,7 +27,7 @@ trait SqlExpressionTest[I, O]
    * @return instance of [[O]]
    */
 
-  protected def getActualValue(r: Row): O
+  protected def getActualValue(r: Row): O = r.getAs[O](0)
 
   /**
    * Test parsing and effective definition of SQL expression involving a single column

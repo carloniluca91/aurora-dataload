@@ -44,7 +44,6 @@ class SqlExpressionParserTest
     val expression = s"cast(${SqlExpressionTest.firstColumnName} as int)"
     val functionTest: SqlExpressionTest[String, Int] = new SqlExpressionTest[String, Int] {
       override protected def computeExpectedValue(input: String): Int = input.toInt
-      override protected def getActualValue(r: Row): Int = r.getInt(0)
     }
 
     val inputSamples: Seq[String] = "01" :: "02" :: Nil
@@ -57,10 +56,9 @@ class SqlExpressionParserTest
     val expression = s"${FunctionName.Concat}(${columnNames.mkString(", ")})"
     val functionTest: SqlExpressionTest[(String, String), String] = new SqlExpressionTest[(String, String), String] {
       override protected def computeExpectedValue(input: (String, String)): String = input._1.concat(input._2)
-      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
-    val inputSamples: Seq[(String, String)] = ("hello", "world") :: ("il", "Budello") :: Nil
+    val inputSamples: Seq[(String, String)] = ("hello", "world") :: Nil
     functionTest.test(expression, inputSamples, columnNames)
   }
 
@@ -71,10 +69,9 @@ class SqlExpressionParserTest
     val expression = s"${FunctionName.ConcatWs}('$separator', ${columnNames.mkString(", ")})"
     val functionTest: SqlExpressionTest[(String, String), String] = new SqlExpressionTest[(String, String), String] {
       override protected def computeExpectedValue(input: (String, String)): String = input._1.concat(separator).concat(input._2)
-      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
-    val inputSamples: Seq[(String, String)] = ("hello", "world") :: ("il", "Budello") :: Nil
+    val inputSamples: Seq[(String, String)] = ("hello", "world") :: Nil
     functionTest.test(expression, inputSamples, columnNames)
   }
 
@@ -83,13 +80,23 @@ class SqlExpressionParserTest
     val pattern = "yyyy-MM-dd"
     val dtGeneratorF: Int => Date = i => Date.valueOf(LocalDate.now().minusDays(i))
     val expression = s"${FunctionName.DateFormat}(${SqlExpressionTest.firstColumnName}, '$pattern')"
-    val dtFunctionTest: SqlExpressionTest[Date, String] = new SqlExpressionTest[Date, String] {
+    val functionTest: SqlExpressionTest[Date, String] = new SqlExpressionTest[Date, String] {
       override protected def computeExpectedValue(input: Date): String = input.toLocalDate.format(DateTimeFormatter.ofPattern(pattern))
-      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
     val inputSamples: Seq[Date] = dtGeneratorF(2) :: dtGeneratorF(1) :: Nil
-    dtFunctionTest.test(expression, inputSamples)
+    functionTest.test(expression, inputSamples)
+  }
+
+  it should s"parse a ${classOf[IsBlank].getSimpleName} function" in {
+
+    val expression = s"${FunctionName.IsBlank}(${SqlExpressionTest.firstColumnName})"
+    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+      override protected def computeExpectedValue(input: String): Boolean = StringUtils.isBlank(input)
+    }
+
+    val inputSamples: Seq[String] = "" :: "  " :: "hello" :: "  world" :: Nil
+    functionTest.test(expression, inputSamples)
   }
 
   it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {
@@ -106,7 +113,6 @@ class SqlExpressionParserTest
         val expression = s"$key(${SqlExpressionTest.firstColumnName})"
         val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
           override protected def computeExpectedValue(input: String): String = expectedF(input)
-          override protected def getActualValue(r: Row): String = r.getString(0)
         }
 
         val inputSamples: Seq[String] = samples.map(sampleGeneratorF)
@@ -127,7 +133,6 @@ class SqlExpressionParserTest
         val expression = s"$key(${SqlExpressionTest.firstColumnName}, $len, '$padding')"
         val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
           override protected def computeExpectedValue(input: String): String = expectedF(input)
-          override protected def getActualValue(r: Row): String = r.getString(0)
         }
 
         val inputSamples: Seq[String] = "hello" :: "world" :: Nil
@@ -155,7 +160,6 @@ class SqlExpressionParserTest
         val expression = s"$key(${SqlExpressionTest.firstColumnName}, '$pattern')"
         val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
           override protected def computeExpectedValue(input: String): Boolean = expectedF(input)
-          override protected def getActualValue(r: Row): Boolean = r.getBoolean(0)
         }
 
         val inputSamples: Seq[String] = sampleGeneratorF(pattern) :: sampleGeneratorF("dd/MM/yyyy") :: Nil
@@ -169,7 +173,6 @@ class SqlExpressionParserTest
     val expression = s"${FunctionName.Substring}(${SqlExpressionTest.firstColumnName}, $pos, $len)"
     val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
       override protected def computeExpectedValue(input: String): String = input.substring(pos - 1, len - pos + 1)
-      override protected def getActualValue(r: Row): String = r.getString(0)
     }
 
     val inputSamples: Seq[String] = "hello" :: "world" :: Nil
@@ -192,7 +195,6 @@ class SqlExpressionParserTest
         val expression = s"$key(${SqlExpressionTest.firstColumnName}, '$pattern')"
         val functionTest: SqlExpressionTest[String, _ <: util.Date] = new SqlExpressionTest[String, util.Date] {
           override protected def computeExpectedValue(input: String): util.Date = expectedF(input)
-          override protected def getActualValue(r: Row): util.Date = actualValueF(r)
         }
 
         val inputSamples: Seq[String] = sampleGeneratorF(5) :: sampleGeneratorF(0) :: Nil

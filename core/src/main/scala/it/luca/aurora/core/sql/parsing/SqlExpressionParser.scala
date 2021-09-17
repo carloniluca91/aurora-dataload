@@ -164,12 +164,13 @@ object SqlExpressionParser
       case FunctionName.Concat => Concat(function)
       case FunctionName.ConcatWs => ConcatWs(function)
       case FunctionName.DateFormat => DateFormat(function)
+      case FunctionName.IsBlank => IsBlank(function)
       case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.Substring => Substring(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
       case FunctionName.LeftTrim | FunctionName.RightTrim | FunctionName.Trim => LeftOrRightOrBothTrim(function)
-      case _ => throw new UnmatchedSQLFunction(function)
+      case _ => throw new UnmatchedSqlFunction(function)
     }
 
     sqlFunction match {

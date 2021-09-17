@@ -2,6 +2,7 @@ package it.luca.aurora.configuration.metadata.extract;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
@@ -15,8 +16,8 @@ public class DataSourceColumn {
     private final DataType type;
 
     @JsonCreator
-    public DataSourceColumn(@JsonProperty("name") String name,
-                            @JsonProperty("type") String type) {
+    public DataSourceColumn(@JsonProperty(JsonField.NAME) String name,
+                            @JsonProperty(JsonField.TYPE) String type) {
 
         this.name = name;
         DataType matchedDataType;

@@ -15,6 +15,7 @@ public final class JsonField {
     public static final String INPUT_PATTERN = "inputPattern";
     public static final String LANDING = "landing";
     public static final String LOAD = "load";
+    public static final String NAME = "name";
     public static final String OPTIONS = "options";
     public static final String OUTPUT_PATTERN = "outputPattern";
     public static final String PARTITION_INFO = "partitionInfo";

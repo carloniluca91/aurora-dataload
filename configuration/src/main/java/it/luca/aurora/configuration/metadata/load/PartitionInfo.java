@@ -12,10 +12,14 @@ import lombok.Getter;
         property = JsonField.TYPE,
         visible = true)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = FileNameRegexInfo.class, name = PartitionInfoType.FILE_NAME_REGEX),
-        @JsonSubTypes.Type(value = ColumnExpressionInfo.class, name = PartitionInfoType.COLUMN_EXPRESSION)
+        @JsonSubTypes.Type(value = FileNameRegexInfo.class, name = PartitionInfo.FILE_NAME_REGEX),
+        @JsonSubTypes.Type(value = ColumnExpressionInfo.class, name = PartitionInfo.COLUMN_EXPRESSION)
 })
 public abstract class PartitionInfo {
+
+
+    public final static String COLUMN_EXPRESSION = "COLUMN_EXPRESSION";
+    public final static String FILE_NAME_REGEX = "FILE_NAME_REGEX";
 
     protected final String type;
     protected final String columnName;

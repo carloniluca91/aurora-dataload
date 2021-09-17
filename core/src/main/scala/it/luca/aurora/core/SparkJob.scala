@@ -6,31 +6,27 @@ import org.apache.spark.sql.functions.col
 import java.sql.{Connection, SQLException}
 
 abstract class SparkJob(protected val sparkSession: SparkSession,
-                        protected val impalaJDBCConnection: Connection)
-  extends Logging {
+                        protected val impalaJDBCConnection: Connection) extends Logging {
 
   /**
    * Saves a [[DataFrame]] to a Hive table and issues an ImpalaQL statement to make data available to Impala
    * @param dataFrame [[DataFrame]] to be saved
    * @param fqTableName fully qualified (i.e. db.table) name of target table
-   * @param saveMode [[SaveMode]] to be used
-   * @param partitionByColumnOpt optional column to be used for partitioning
-   * @throws java.sql.SQLException if ImpalaQL statement fails
+   * @param partitionColumn column to be used for partitioning
    */
 
-  @throws[SQLException]
-  private def saveAsOrInsertInto(dataFrame: DataFrame,
-                                 fqTableName: String,
-                                 saveMode: SaveMode,
-                                 partitionByColumnOpt: Option[String]): Unit = {
+  protected def saveAsOrInsertInto(dataFrame: DataFrame,
+                                   fqTableName: String,
+                                   partitionColumn: String): Unit = {
 
+    val saveMode = SaveMode.Append
     val dfClass: String = classOf[DataFrame].getSimpleName
     val cachedDataFrame: DataFrame = dataFrame.cache()
     if (cachedDataFrame.isEmpty) {
       log.warn(s"Given $dfClass for target table $fqTableName is empty. Thus, no data will be written to it")
     } else {
 
-      log.info(s"Saving given $dfClass to target table $fqTableName with saveMode $saveMode. Schema\n\n${cachedDataFrame.schema.treeString}")
+      log.info(s"Saving given $dfClass to target table $fqTableName. Schema\n\n${cachedDataFrame.schema.treeString}")
       val tableExists: Boolean = sparkSession.catalog.tableExists(fqTableName)
       if (tableExists) {
         log.info(s"Target table $fqTableName already exists. Matching given $dfClass to it and saving using .insertInto")
@@ -38,34 +34,33 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
           .write.mode(saveMode)
           .insertInto(fqTableName)
       } else {
-        log.warn(s"Target table $fqTableName does not exist now. Creating it now using .saveAsTable")
-        val commonWriter: DataFrameWriter[Row] = cachedDataFrame.write.mode(saveMode).format("parquet")
-        val maybePartitionedWriter: DataFrameWriter[Row] = partitionByColumnOpt match {
-          case Some(x) => commonWriter.partitionBy(x)
-          case None => commonWriter
-        }
-
-        maybePartitionedWriter.saveAsTable(fqTableName)
+        log.warn(s"Target table $fqTableName does not exist. Creating it now using .saveAsTable")
+        cachedDataFrame.write
+          .mode(saveMode).format("parquet")
+          .partitionBy(partitionColumn)
+          .saveAsTable(fqTableName)
       }
 
-      // Connect to Impala and execute statement
-      val impalaQLStatement: String = if (!tableExists || saveMode == SaveMode.Overwrite) {
-        s"INVALIDATE METADATA $fqTableName"
-      } else s"REFRESH $fqTableName"
-
-      log.info(s"Successfully saved data into $fqTableName. Issuing following ImpalaQL statement: $impalaQLStatement")
-      impalaJDBCConnection.createStatement().execute(impalaQLStatement)
-      log.info(s"Successfully issued following ImpalaQL statement: $impalaQLStatement")
+      executeImpalaStatement(fqTableName, tableExists)
     }
   }
 
   /**
-   * Saves a [[DataFrame]] to a Hive table with savemode "append" and issues an ImpalaQL statement to make data available to Impala
-   * @param dataFrame [[DataFrame]] to be saved
-   * @param fqTableName fully qualified (i.e. db.table) name of target table
-   * @param partitionColumn name of partition column
+   * Execute an INVALIDATE METADATA or REFRESH ImpalaQLStatement
+   * @param fqTableName fully qualified table name
+   * @param tableExists whether given table already exists or not
+   * @throws java.sql.SQLException if statement execution fails
    */
 
-  protected def saveAsOrInsertIntoInAppend(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Unit =
-    saveAsOrInsertInto(dataFrame, fqTableName, SaveMode.Append, Some(partitionColumn))
+  @throws[SQLException]
+  protected def executeImpalaStatement(fqTableName: String, tableExists: Boolean): Unit = {
+
+    val impalaQLStatement: String = if (!tableExists) {
+      s"INVALIDATE METADATA $fqTableName"
+    } else s"REFRESH $fqTableName"
+
+    log.info(s"Successfully saved data into $fqTableName. Issuing following ImpalaQL statement: $impalaQLStatement")
+    impalaJDBCConnection.createStatement().execute(impalaQLStatement)
+    log.info(s"Successfully issued following ImpalaQL statement: $impalaQLStatement")
+  }
 }

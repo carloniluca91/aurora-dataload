@@ -114,8 +114,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      saveAsOrInsertIntoInAppend(validRecordsDataFrame, trustedTable, partitionColumnName)
-      saveAsOrInsertIntoInAppend(invalidRecordsDataFrame, errorTable, partitionColumnName)
+      saveAsOrInsertInto(validRecordsDataFrame, trustedTable, partitionColumnName)
+      saveAsOrInsertInto(invalidRecordsDataFrame, errorTable, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.toString}")
     }
   }
@@ -153,7 +153,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       log.info(s"Successfully converted $recordsSize $recordClassName(s) to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = yaml.getProperty("spark.log.table.name")
       val partitionColumn: String = yaml.getProperty("spark.log.table.partitionColumn")
-      saveAsOrInsertIntoInAppend(jobRecordsDataFrame, targetTable, partitionColumn)
+      saveAsOrInsertInto(jobRecordsDataFrame, targetTable, partitionColumn)
     } match {
       case Success(_) => log.info(s"Successfully saved all of $recordsSize $recordClassName(s)")
       case Failure(exception) => log.error(s"Caught exception while saving $records $recordClassName(s). Stack trace: ", exception)
