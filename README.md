@@ -8,12 +8,12 @@ files according to the specifications stated in such file. Among these specifica
 
 * filters to apply to raw data
 * transformations to apply to raw data
-* information for duplicated removal and data partitioning
+* information for duplicates removal and data partitioning
 
 Processed data are then stored into Hive. Right after that, an `ImpalaQl` statement 
 is triggered in order to make stored data immediately available to `Impala` for analysis 
-and querying purposes. In addition, the engine stores a record for each ingestion process 
-on a Hive table for logging purposes
+and querying purposes. In addition, the engine moves each ingested file to a different HDFS 
+location and stores a record on a Hive table for logging purposes
 
 This project is a personal, free-time rework of a real life project
 I had extensively worked on during my career ;)

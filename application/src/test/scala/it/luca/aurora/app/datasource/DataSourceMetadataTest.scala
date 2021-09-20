@@ -34,7 +34,7 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
 
     // Read .yaml
     val toStream: String => InputStream = s => this.getClass.getClassLoader.getResourceAsStream(s)
-    val applicationYaml = deserializeStream(toStream("datasources.yaml"),
+    val applicationYaml = deserializeStream(toStream("aurora_datasources.yaml"),
       classOf[ApplicationYaml],
       DataFormat.YAML)
 
