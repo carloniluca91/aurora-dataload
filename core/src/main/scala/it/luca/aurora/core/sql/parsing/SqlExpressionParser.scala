@@ -25,7 +25,7 @@ object SqlExpressionParser
   @throws[UnidentifiedExpressionException]
   def parse(input: String): Column = {
 
-    parseSpecialCases(input) match {
+    parsePartialMatchCase(input) match {
       case Right(column) => column
       case Left(str) =>
 
@@ -43,7 +43,7 @@ object SqlExpressionParser
           case _ => throw new UnidentifiedExpressionException(input)
         }
 
-        log.info(s"Successfully parsed input string $input as an instance of ${classOf[Column].getSimpleName}")
+        log.debug(s"Successfully parsed input string $input as an instance of ${classOf[Column].getSimpleName}")
         outputColumn
     }
   }
@@ -51,17 +51,18 @@ object SqlExpressionParser
   protected def parse(expression: Expression): Column = parse(expression.toString)
 
   /**
-   * Attemps to parse a special case expression (i.e. not parsable using [[CCJSqlParserUtil]]
+   * Attemps to manually parse an expression that is parsed only partially if using [[CCJSqlParserUtil]]
    * @param input input SQL string
-   * @return either a [[Column]] if parsing succeeded, or the input string otherwise
+   * @return either a [[Column]] if parsing succeeded, or the input string otherwise. If the input string is returned,
+   *         than it is expected to be an expression that can be fully parsed by [[CCJSqlParserUtil]]
    */
 
-  protected def parseSpecialCases(input: String): Either[String, Column] = {
+  protected def parsePartialMatchCase(input: String): Either[String, Column] = {
 
     // Define a map holding regexes and related match-to-column conversion
     val specialCasesMap: Map[String, (Regex, Regex.Match => Column)] = Map(
-      "ALIAS" -> ("^(\\w+(\\(.+\\))?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(3))),
-      "CAST" -> ("^cast\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2)))
+      "CAST" -> ("^CAST\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2))),
+      "ALIAS" -> ("^(\\w+\\(?.+\\)?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(2)))
     )
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion

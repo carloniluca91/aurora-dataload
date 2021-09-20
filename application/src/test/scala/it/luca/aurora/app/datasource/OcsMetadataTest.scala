@@ -7,7 +7,7 @@ import it.luca.aurora.configuration.metadata.transform.Transform
 import scala.collection.JavaConversions._
 
 class OcsMetadataTest
-  extends DataSourceMetadataTest("ocs.json") {
+  extends DataSourceMetadataTest("OCS") {
 
   override protected def testExtract(extract: Extract): Unit = {
 

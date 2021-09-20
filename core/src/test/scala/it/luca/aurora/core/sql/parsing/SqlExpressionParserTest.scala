@@ -33,7 +33,7 @@ class SqlExpressionParserTest
 
   s"The SQL parser" should s"parse an aliasing expression" in {
 
-    val expression = s"${SqlExpressionTest.firstColumnName} as ${SqlExpressionTest.secondColumnName}"
+    val expression = s"${SqlExpressionTest.firstColumnName} AS ${SqlExpressionTest.secondColumnName}"
     val testDf: DataFrame = ("hello" :: Nil).toDF(SqlExpressionTest.firstColumnName)
     val column: Column = SqlExpressionParser.parse(expression)
     testDf.select(column).columns.head shouldEqual SqlExpressionTest.secondColumnName
@@ -41,7 +41,7 @@ class SqlExpressionParserTest
 
   it should s"parse a CAST expression" in {
 
-    val expression = s"cast(${SqlExpressionTest.firstColumnName} as int)"
+    val expression = s"CAST(${SqlExpressionTest.firstColumnName} AS int)"
     val functionTest: SqlExpressionTest[String, Int] = new SqlExpressionTest[String, Int] {
       override protected def computeExpectedValue(input: String): Int = input.toInt
     }

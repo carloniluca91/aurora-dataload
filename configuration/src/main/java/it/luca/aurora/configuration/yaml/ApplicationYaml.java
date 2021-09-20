@@ -4,67 +4,21 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Getter
 public class ApplicationYaml {
 
-    private final Map<String, String> properties;
+    public static final String DATASOURCES = "dataSources";
+
     private final List<DataSource> dataSources;
 
     @JsonCreator
-    public ApplicationYaml(@JsonProperty("properties") Map<String, String> properties,
-                           @JsonProperty("dataSources") List<DataSource> dataSources) {
+    public ApplicationYaml(@JsonProperty(DATASOURCES) List<DataSource> dataSources) {
 
-        this.properties = properties;
-        this.dataSources = dataSources;
-    }
-
-    /**
-     * Performs property interpolation
-     * @return copy of this instance of {@link ApplicationYaml} with interpolated properties
-     * @throws UnExistingPropertyException if interpolation fails
-     */
-
-    public ApplicationYaml withInterpolation() throws UnExistingPropertyException {
-
-        Pattern pattern = Pattern.compile("(\\$\\{([\\w.]+)})");
-        List<String> keySet = new ArrayList<>(properties.keySet());
-        Map<String, String> interpolatedProperties = new HashMap<>();
-
-        for (String key: keySet) {
-
-            String value = properties.get(key);
-            Matcher matcher = pattern.matcher(value);
-            String interpolatedValue = value;
-            while (matcher.find()) {
-                interpolatedValue = interpolatedValue.replace(matcher.group(1), this.getProperty(matcher.group(2)));
-            }
-
-            interpolatedProperties.put(key, interpolatedValue);
-        }
-
-        return new ApplicationYaml(interpolatedProperties, dataSources);
-    }
-
-    /**
-     * Returns value of provided property if it exists
-     * @param key property
-     * @return value of property
-     * @throws UnExistingPropertyException if provided property does not exist
-     */
-
-    public String getProperty(String key) throws UnExistingPropertyException {
-
-        if (properties.containsKey(key)) {
-            return properties.get(key);
-        } else throw new UnExistingPropertyException(key);
+        this.dataSources = Objects.requireNonNull(dataSources, DATASOURCES);
     }
 
     /**

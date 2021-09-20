@@ -12,20 +12,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
+@Getter
 public class Transform {
 
-    private final String DATASET_CLASS = Dataset.class.getSimpleName();
-
-    @Getter
     private final List<String> filters;
-
-    @Getter
     private final List<String> transformations;
-
-    @Getter
     private final List<String> dropDuplicates;
-
-    @Getter
     private final List<String> dropColumns;
 
     @JsonCreator
@@ -46,44 +38,34 @@ public class Transform {
     }
 
     /**
-     * Optionally remove duplicates from given dataset
+     * Optionally remove duplicates and drop columns from input dataset
      * @param input input {@link Dataset}
-     * @return input dataset with duplicates removed according to stated columns (if any), the input itself otherwise
+     * @return input dataset itself or the input dataset with either dropped duplicates or dropped columns or both
      */
 
-    public Dataset<Row> maybeRemoveDuplicates(Dataset<Row> input) {
+    public Dataset<Row> maybeDropDuplicatesAndColumns(Dataset<Row> input) {
 
-        Dataset<Row> output;
+        String DATASET_CLASS = Dataset.class.getSimpleName();
+        Dataset<Row> maybeDroppedDuplicatesDataset;
         if (nullOrEmptyList(dropDuplicates)) {
             log.info("No duplicates will be removed from input {}", DATASET_CLASS);
-            output = input;
+            maybeDroppedDuplicatesDataset = input;
         } else {
             log.info("Removing duplicates from input {} according to columns: {}",
                     DATASET_CLASS, String.join("|", dropDuplicates));
-            output = input.dropDuplicates(dropDuplicates.toArray(new String[0]));
+            maybeDroppedDuplicatesDataset = input.dropDuplicates(dropDuplicates.toArray(new String[0]));
         }
 
-        return output;
-    }
-
-    /**
-     * Optionally drop some columns from given dataset
-     * @param input input {@link Dataset}
-     * @return input dataset with stated columns dropped (if any), the input itself otherwise
-     */
-
-    public Dataset<Row> maybeDropColumns(Dataset<Row> input) {
-
-        Dataset<Row> output;
+        Dataset<Row> maybeDroppedDuplicatesAndColumnsDataset;
         if (nullOrEmptyList(dropColumns)) {
             log.info("No columns to drop from input {}", DATASET_CLASS);
-            output = input;
+            maybeDroppedDuplicatesAndColumnsDataset = maybeDroppedDuplicatesDataset;
         } else {
             log.info("Dropping following columns from input {}: {}",
                     DATASET_CLASS, String.join("|", dropColumns));
-            output = input.drop(dropColumns.toArray(new String[0]));
+            maybeDroppedDuplicatesAndColumnsDataset = maybeDroppedDuplicatesDataset.drop(dropColumns.toArray(new String[0]));
         }
 
-        return output;
+        return maybeDroppedDuplicatesAndColumnsDataset;
     }
 }

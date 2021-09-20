@@ -1,12 +1,14 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
-import it.luca.aurora.configuration.implicits._
+import it.luca.aurora.app.utils.loadProperties
 import it.luca.aurora.configuration.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
+import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
+import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
 
@@ -24,26 +26,27 @@ class DataloadJobRunner
 
   def run(cliArguments: CliArguments): Unit = {
 
-    val yamlFileName: String = cliArguments.yamlFileName
-    val dataSourceId: String = cliArguments.dataSource
+    val propertiesFileName: String = cliArguments.propertiesFileName
+    val dataSourceId: String = cliArguments.dataSourceId
     Try {
 
-      // Deserialize application's .yaml file
-      val yaml: ApplicationYaml = deserializeFile(new File(yamlFileName), classOf[ApplicationYaml]).withInterpolation()
-      val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId)
-      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(yaml)
+      // Deserialize both .properties and .yaml file
+      val properties: PropertiesConfiguration = loadProperties(propertiesFileName)
+      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(properties)
+      val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml])
+      val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId).withInterpolation(properties)
 
       // Read metadata file as a single String, interpolate it and deserialize it into a Java object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
-      val jsonString: String = fs.readFileAsString(new Path(dataSource.getMetadataFilePath)).interpolateUsingYaml(yaml)
+      val jsonString: String = fs.readFileAsString(dataSource.getMetadataFilePath).withInterpolation(properties)
       log.info(s"Successfully interpolated content of file ${dataSource.getMetadataFilePath}")
       val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata], DataFormat.JSON)
 
       // Check files within dataSource's input folder
       val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding, dataSourceMetadata.getFileNameRegex)
       val validInputFiles: Seq[FileStatus] = fs.getListOfMatchingFiles(new Path(landingPath), fileNameRegex.r)
-      new DataloadJob(sparkSession, impalaJDBCConnection, yaml, dataSource, dataSourceMetadata)
+      new DataloadJob(sparkSession, impalaJDBCConnection, properties, dataSource, dataSourceMetadata)
         .processFiles(validInputFiles)
     } match {
       case Success(_) => log.info(s"Successfully executed ingestion job for dataSource $dataSourceId")
@@ -65,7 +68,7 @@ class DataloadJobRunner
 
   /**
    * Initializes a [[Connection]] to Impala
-   * @param yaml instance of [[ApplicationYaml]]
+   * @param properties instance of [[PropertiesConfiguration]]
    * @throws java.lang.ClassNotFoundException if JDBC driver class is not found
    * @throws java.sql.SQLException if connection's initialization fails
    * @return instance of [[Connection]]
@@ -73,10 +76,10 @@ class DataloadJobRunner
 
   @throws[ClassNotFoundException]
   @throws[SQLException]
-  private def initImpalaJDBCConnection(yaml: ApplicationYaml): Connection = {
+  private def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
 
-    val driverClassName: String = yaml.getProperty("impala.jdbc.driverClass")
-    val impalaJdbcUrl: String = yaml.getProperty("impala.jdbc.url")
+    val driverClassName: String = properties.getString("impala.jdbc.driverClass")
+    val impalaJdbcUrl: String = properties.getString("impala.jdbc.url")
 
     Class.forName(driverClassName)
     val connection: Connection = DriverManager.getConnection(impalaJdbcUrl)

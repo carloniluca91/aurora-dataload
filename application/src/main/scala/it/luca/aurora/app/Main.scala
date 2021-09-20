@@ -12,18 +12,25 @@ object Main
   log.info("Started application main class")
   val cliParser: OptionParser[CliArguments] = new OptionParser[CliArguments]("scopt 4.0") {
 
-    // Yaml file option
-    opt[String](CliOption.YamlFileName.shortOption, CliOption.YamlFileName.longOption)
-      .text(CliOption.YamlFileName.description)
+    // Properties file option
+    opt[String](CliOption.PropertiesFile.shortOption, CliOption.PropertiesFile.longOption)
+      .text(CliOption.PropertiesFile.description)
       .required()
-      .validate(s => if (s.endsWith(".yaml")) success else failure(s"A .yaml file is expected. Found $s"))
-      .action((s, c) => c.copy(yamlFileName = s))
+      .validate(s => if (s.endsWith(".properties")) success else failure(s"A .properties file was expected. Found $s"))
+      .action((s, c) => c.copy(propertiesFileName = s.trim))
+
+    // Yaml file option
+    opt[String](CliOption.YamlFile.shortOption, CliOption.YamlFile.longOption)
+      .text(CliOption.YamlFile.description)
+      .required()
+      .validate(s => if (s.endsWith(".yaml")) success else failure(s"A .yaml file was expected. Found $s"))
+      .action((s, c) => c.copy(yamlFileName = s.trim))
 
     // DataSource option
-    opt[String](CliOption.DataSource.shortOption, CliOption.DataSource.longOption)
-      .text(CliOption.DataSource.description)
+    opt[String](CliOption.DataSourceId.shortOption, CliOption.DataSourceId.longOption)
+      .text(CliOption.DataSourceId.description)
       .required()
-      .action((s, c) => c.copy(dataSource = s))
+      .action((s, c) => c.copy(dataSourceId = s.trim))
   }
 
   // Parse command line arguments

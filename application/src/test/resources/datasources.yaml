@@ -1,0 +1,5 @@
+dataSources:
+  -
+    id: OCS
+    metadataFilePath: metadata/ocs.json
+

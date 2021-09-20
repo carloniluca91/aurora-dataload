@@ -1,23 +1,27 @@
 package it.luca.aurora.configuration.implicits
 
-import it.luca.aurora.configuration.yaml.{ApplicationYaml, UnExistingPropertyException}
+import it.luca.aurora.configuration.implicits.StringInterpolator.TokenReplaceRegex
+import it.luca.aurora.configuration.yaml.ApplicationYaml
+import org.apache.commons.configuration2.PropertiesConfiguration
 
 import scala.util.matching.Regex
 
 class StringInterpolator(protected val string: String) {
 
   /**
-   * Interpolates this string using as instance of [[ApplicationYaml]]
-   * @param yaml instance of [[ApplicationYaml]]
-   * @throws it.luca.aurora.configuration.yaml.UnExistingPropertyException if the value of an unknown property is requested
+   * Interpolates this string using as instance of [[PropertiesConfiguration]]
+   * @param properties instance of [[PropertiesConfiguration]]
    * @return interpolated string (e.g. a token like ${a.property} is replaced with the value of property
    *         'a.property' retrieved from the instance of [[ApplicationYaml]] (if present))
    */
 
-  @throws[UnExistingPropertyException]
-  def interpolateUsingYaml(yaml: ApplicationYaml): String = {
+  def withInterpolation(properties: PropertiesConfiguration): String = {
 
-    val regex: Regex = "\\$\\{([\\w.]+)}".r
-    regex.replaceAllIn(string, m => s"${yaml.getProperty(m.group(1))}")
+    TokenReplaceRegex.replaceAllIn(string, m => s"${properties.getString(m.group(1))}")
   }
+}
+
+object StringInterpolator {
+
+  protected final val TokenReplaceRegex: Regex = "\\$\\{([\\w.]+)}".r
 }

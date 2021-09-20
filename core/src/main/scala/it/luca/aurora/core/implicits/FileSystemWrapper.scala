@@ -53,14 +53,14 @@ class FileSystemWrapper(protected val fs: FileSystem)
   }
 
   /**
-   * Read content of given [[Path]] as a single string
+   * Read content of file at given path as a single string
    * @param path [[Path]] to be read
    * @return string representing content of given file
    */
 
-  def readFileAsString(path: Path): String = {
+  def readFileAsString(path: String): String = {
 
-    Source.fromInputStream(fs.open(path))
+    Source.fromInputStream(fs.open(new Path(path)))
       .getLines()
       .mkString(" ")
   }

@@ -5,10 +5,11 @@ import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
 import it.luca.aurora.configuration.metadata.{DataSourceMetadata, DataSourcePaths, EtlConfiguration}
-import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
+import it.luca.aurora.configuration.yaml.DataSource
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import it.luca.aurora.core.{Logging, SparkJob}
+import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.functions.{concat_ws, lit, when}
@@ -20,15 +21,14 @@ import scala.util.{Failure, Success, Try}
 
 class DataloadJob(override protected val sparkSession: SparkSession,
                   override protected val impalaJDBCConnection: Connection,
-                  protected val yaml: ApplicationYaml,
+                  protected val properties: PropertiesConfiguration,
                   protected val dataSource: DataSource,
                   protected val dataSourceMetadata: DataSourceMetadata)
   extends SparkJob(sparkSession, impalaJDBCConnection)
     with Logging {
 
-  protected final val dataSourceId: String = dataSourceMetadata.getId
-  protected final val yarnUiUrl: String = yaml.getProperty("yarn.ui.url")
-  protected final val fsPermission: FsPermission = FsPermission.valueOf(yaml.getProperty("hdfs.defaultPermissions"))
+  protected final val yarnUiUrl: String = properties.getString("yarn.ui.url")
+  protected final val fsPermission: FsPermission = FsPermission.valueOf(properties.getString("hdfs.defaultPermissions"))
 
   /**
    * Run ingestion job for each valid input file
@@ -43,19 +43,22 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
     } else {
 
-      log.info(s"Found ${inputFiles.size} file(s) to ingest for dataSource $dataSourceId")
+      log.info(s"Found ${inputFiles.size} file(s) to be ingested (${inputFiles.map(_.getPath).mkString("|")})")
       val fs: FileSystem = sparkSession.getFileSystem
       val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
       val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
 
         // Depending on job execution, set optional exception and target directory where file will be moved
-        val (exceptionOpt, targetDirectoryPath): (Option[Throwable], Path) = processFile(inputFile) match {
-          case Success(_) => (None, dataSourcePaths.getSuccessPath)
-          case Failure(exception) => (Some(exception), dataSourcePaths.getErrorPath)
+        val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
+          case Success(_) => (None, dataSourcePaths.getSuccess)
+          case Failure(exception) =>
+
+            log.error(s"Caught exception while ingesting file ${inputFile.getPath}. Stack trace: ", exception)
+            (Some(exception), dataSourcePaths.getError)
         }
 
         val filePath: Path = inputFile.getPath
-        fs.moveFileToDirectory(filePath, targetDirectoryPath, fsPermission)
+        fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), fsPermission)
         buildDataloadJobRecord(filePath, exceptionOpt)
       }
 
@@ -76,12 +79,12 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val filePath: Path = fileStatus.getPath
       val etlConfiguration: EtlConfiguration = dataSourceMetadata.getEtlConfiguration
       val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
-      log.info(s"Starting to ingest file $filePath for dataSource $dataSourceId")
+      log.info(s"Starting to ingest file $filePath")
 
       // Read file
       val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
       val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
-      log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s) for dataSource $dataSourceId")
+      log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
       val overallFilterCol: Column = filterStatementsAndCols.map{ _._2 }.reduce(_ && _)
       val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { x => when(x._2, x._1) }
 
@@ -105,17 +108,17 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Valid records
       val trustedDfColumns: Seq[Column] = transform.getTransformations.map { SqlExpressionParser.parse }
-      log.info(s"Successfully converted all of ${trustedDfColumns.size} trasformation(s) for dataSource $dataSourceId")
+      log.info(s"Successfully converted all of ${trustedDfColumns.size} trasformation(s)")
       val nonFinalTrustedDf: DataFrame = inputDataFrame.filter(overallFilterCol)
         .select(trustedDfColumns: _*)
         .withInputFilePathCol(filePath)
         .withTechnicalColumns()
         .withColumn(partitionColumnName, partitionCol)
 
-      log.info(s"Successfully added all of ${trustedDfColumns.size} for dataSource $dataSourceId")
+      log.info(s"Successfully added all of ${trustedDfColumns.size}")
 
       // Optionally remove duplicates and drop columns
-      val finalTrustedDf: DataFrame = transform.maybeDropColumns(transform.maybeRemoveDuplicates(nonFinalTrustedDf))
+      val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
@@ -150,18 +153,17 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
     import sparkSession.implicits._
 
-    val recordsSize: Int = records.size
-    val recordClassName: String = classOf[DataloadJobRecord].getSimpleName
+    val recordsDescription: String = s"${records.size} ${classOf[DataloadJobRecord].getSimpleName}(s)"
     Try {
 
       val jobRecordsDataFrame: DataFrame = records.toDF().withSqlNamingConvention()
-      log.info(s"Successfully converted $recordsSize $recordClassName(s) to a ${classOf[DataFrame].getSimpleName}")
-      val targetTable: String = yaml.getProperty("spark.log.table.name")
-      val partitionColumn: String = yaml.getProperty("spark.log.table.partitionColumn")
+      log.info(s"Successfully converted $recordsDescription to a ${classOf[DataFrame].getSimpleName}")
+      val targetTable: String = properties.getString("spark.log.table.name")
+      val partitionColumn: String = properties.getString("spark.log.table.partitionColumn")
       saveAsOrInsertInto(jobRecordsDataFrame, targetTable, partitionColumn)
     } match {
-      case Success(_) => log.info(s"Successfully saved all of $recordsSize $recordClassName(s)")
-      case Failure(exception) => log.warn(s"Caught exception while saving $records $recordClassName(s). Stack trace: ", exception)
+      case Success(_) => log.info(s"Successfully saved all of $recordsDescription")
+      case Failure(exception) => log.warn(s"Caught exception while saving $recordsDescription. Stack trace: ", exception)
     }
   }
 }

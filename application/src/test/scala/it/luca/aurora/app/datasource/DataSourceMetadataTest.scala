@@ -1,42 +1,51 @@
 package it.luca.aurora.app.datasource
 
-import it.luca.aurora.configuration.implicits._
+import it.luca.aurora.app.utils.loadProperties
 import it.luca.aurora.configuration.ObjectDeserializer.{DataFormat, deserializeStream, deserializeString}
+import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
-import it.luca.aurora.configuration.yaml.ApplicationYaml
+import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
+import org.apache.commons.configuration2.PropertiesConfiguration
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 
 import java.io.InputStream
-import scala.io.Source
 import scala.collection.JavaConversions._
+import scala.io.Source
 import scala.util.Try
 
-abstract class DataSourceMetadataTest(protected val fileName: String)
+abstract class DataSourceMetadataTest(protected val dataSourceId: String)
   extends AnyFlatSpec
     with should.Matchers
     with Logging {
 
   protected final def isPresent[T](input: T): Boolean = Option(input).isDefined
 
-  s"Metadata file $fileName" should
+  s"Metadata file for dataSource $dataSourceId" should
     s"be correctly deserialized as a ${classOf[DataSourceMetadata].getSimpleName} instance" in {
 
-    // Read application yaml
-    val toStream: String => InputStream = s => this.getClass.getClassLoader.getResourceAsStream(s)
-    val applicationYaml = deserializeStream(toStream("spark_application.yaml"),
-      classOf[ApplicationYaml],
-      DataFormat.YAML).withInterpolation()
+    // Read .properties
+    val properties: PropertiesConfiguration = loadProperties("spark_application.properties")
 
-    // Interpolate metadata .json string with application yaml and deserialize as Java object
-    val metadataJsonString: String = Source.fromInputStream(toStream(fileName))
+    // Read .yaml
+    val toStream: String => InputStream = s => this.getClass.getClassLoader.getResourceAsStream(s)
+    val applicationYaml = deserializeStream(toStream("datasources.yaml"),
+      classOf[ApplicationYaml],
+      DataFormat.YAML)
+
+    val dataSource: DataSource = applicationYaml.getDataSourceWithId(dataSourceId)
+      .withInterpolation(properties)
+
+    // Interpolate metadata .json string with application .properties and deserialize as Java object
+    val metadataJsonString: String = Source.fromInputStream(toStream(dataSource.getMetadataFilePath))
       .getLines().mkString("\n")
-      .interpolateUsingYaml(applicationYaml)
+      .withInterpolation(properties)
+
     val dataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata], DataFormat.JSON)
     isPresent(dataSourceMetadata.getId) shouldBe true
     isPresent(dataSourceMetadata.getDataSourcePaths) shouldBe true
