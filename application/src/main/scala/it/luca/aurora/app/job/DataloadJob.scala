@@ -43,7 +43,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
     } else {
 
-      log.info(s"Found ${inputFiles.size} file(s) to be ingested (${inputFiles.map(_.getPath).mkString("|")})")
+      log.info(s"Found ${inputFiles.size} file(s) to be ingested (${inputFiles.map(_.getPath.getName).mkString("|")})")
       val fs: FileSystem = sparkSession.getFileSystem
       val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
       val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
@@ -79,14 +79,14 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val filePath: Path = fileStatus.getPath
       val etlConfiguration: EtlConfiguration = dataSourceMetadata.getEtlConfiguration
       val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
-      log.info(s"Starting to ingest file $filePath")
+      log.info(s"Starting to ingest file ${filePath.getName}")
 
       // Read file
       val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
       val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
       log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
       val overallFilterCol: Column = filterStatementsAndCols.map{ _._2 }.reduce(_ && _)
-      val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { x => when(x._2, x._1) }
+      val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { x => when(!x._2, x._1) }
 
       // Partitioning
       val partitionInfo: PartitionInfo = load.getPartitionInfo
@@ -115,7 +115,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
         .withTechnicalColumns()
         .withColumn(partitionColumnName, partitionCol)
 
-      log.info(s"Successfully added all of ${trustedDfColumns.size}")
+      log.info(s"Successfully applied all of ${trustedDfColumns.size} transformation(s)")
 
       // Optionally remove duplicates and drop columns
       val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
@@ -124,7 +124,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
       saveAsOrInsertInto(finalTrustedDf, trustedTable, partitionColumnName)
       saveAsOrInsertInto(errorDf, errorTable, partitionColumnName)
-      log.info(s"Successfully ingested file $filePath")
+      log.info(s"Successfully ingested file ${filePath.getName}")
     }
   }
 

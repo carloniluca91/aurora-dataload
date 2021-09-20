@@ -36,10 +36,10 @@ public abstract class Extract {
 
     public Dataset<Row> read(SparkSession sparkSession, Path path) {
 
-        String filePath = path.toString();
-        log.info("Starting to read input file {}", filePath);
-        Dataset<Row> dataset = invokeReader(setUpReader(sparkSession)).apply(filePath);
-        log.info("Successfully read input file {}", filePath);
+        String fileName = path.getName();
+        log.info("Starting to read input file {}", fileName);
+        Dataset<Row> dataset = invokeReader(setUpReader(sparkSession)).apply(fileName);
+        log.info("Successfully read input file {}", fileName);
         return dataset;
     }
 }
