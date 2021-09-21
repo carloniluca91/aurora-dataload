@@ -21,10 +21,12 @@ import java.util.function.Function;
         property = JsonField.TYPE,
         visible = true)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = CsvExtract.class, name = Extract.CSV)
+        @JsonSubTypes.Type(value = CsvExtract.class, name = Extract.CSV),
+        @JsonSubTypes.Type(value = AvroExtract.class, name = Extract.AVRO)
 })
 public abstract class Extract {
 
+    public static final String AVRO = "AVRO";
     public static final String CSV = "CSV";
 
     protected final String type;

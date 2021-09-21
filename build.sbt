@@ -10,6 +10,7 @@ val jacksonVersion = "2.9.9"
 // Compile dependencies
 lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provided
 lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % Provided
+lazy val sparkAvro = "org.apache.spark" %% "spark-avro" % sparkVersion
 lazy val scopt = "com.github.scopt" %% "scopt" % scoptVersion
 lazy val jacksonYaml = "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion
 lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
@@ -91,6 +92,7 @@ lazy val configuration = (project in file("configuration"))
     name := "configuration",
     commonSettings,
     libraryDependencies ++= sparkSql ::
+      sparkAvro ::
       jacksonYaml ::
       lombok ::
       scalacTic ::

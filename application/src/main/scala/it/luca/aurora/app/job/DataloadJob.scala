@@ -27,8 +27,9 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   extends SparkJob(sparkSession, impalaJDBCConnection)
     with Logging {
 
-  protected final val yarnUiUrl: String = properties.getString("yarn.ui.url")
   protected final val fsPermission: FsPermission = FsPermission.valueOf(properties.getString("hdfs.defaultPermissions"))
+  protected final val maxFileSizeInBytes: Int = properties.getInt("spark.output.file.maxSizeInBytes")
+  protected final val yarnUiUrl: String = properties.getString("yarn.ui.url")
 
   /**
    * Run ingestion job for each valid input file
@@ -37,29 +38,29 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
   def processFiles(inputFiles: Seq[FileStatus]): Unit = {
 
-    val landingPath: String = dataSourceMetadata.getDataSourcePaths.getLanding
     val fileNameRegex: String = dataSourceMetadata.getFileNameRegex
+    val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
+    val landingPath: String = dataSourcePaths.getLanding
     if (inputFiles.isEmpty) {
       log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
     } else {
 
       log.info(s"Found ${inputFiles.size} file(s) to be ingested (${inputFiles.map(_.getPath.getName).mkString("|")})")
       val fs: FileSystem = sparkSession.getFileSystem
-      val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
       val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
 
-        // Depending on job execution, set optional exception and target directory where file will be moved
+        // Depending on job execution, set optional exception and target directory where processed file will be moved
         val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
           case Success(_) => (None, dataSourcePaths.getSuccess)
           case Failure(exception) =>
 
-            log.error(s"Caught exception while ingesting file ${inputFile.getPath}. Stack trace: ", exception)
+            log.error(s"Caught exception while ingesting file ${inputFile.getPath.getName}. Stack trace: ", exception)
             (Some(exception), dataSourcePaths.getError)
         }
 
         val filePath: Path = inputFile.getPath
         fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), fsPermission)
-        buildDataloadJobRecord(filePath, exceptionOpt)
+        DataloadJobRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
       }
 
       writeDataloadJobRecords(dataloadJobRecords)
@@ -122,26 +123,10 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      saveAsOrInsertInto(finalTrustedDf, trustedTable, partitionColumnName)
-      saveAsOrInsertInto(errorDf, errorTable, partitionColumnName)
+      saveAsOrInsertInto(finalTrustedDf.withOptimizedRepartitioning(maxFileSizeInBytes), trustedTable, partitionColumnName)
+      saveAsOrInsertInto(errorDf.withOptimizedRepartitioning(maxFileSizeInBytes), errorTable, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
     }
-  }
-
-  /**
-   * Create a [[DataloadJobRecord]] for given [[Path]] and potential exception raised by ingestion job
-   * @param filePath [[Path]] of ingested file
-   * @param exceptionOpt potential exception raised by ingestion job
-   * @return [[DataloadJobRecord]]
-   */
-
-  protected final def buildDataloadJobRecord(filePath: Path, exceptionOpt: Option[Throwable]): DataloadJobRecord = {
-
-    DataloadJobRecord(sparkContext = sparkSession.sparkContext,
-      dataSource = dataSource,
-      yarnUiUrl = yarnUiUrl,
-      filePath = filePath,
-      exceptionOpt = exceptionOpt)
   }
 
   /**
@@ -156,7 +141,10 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     val recordsDescription: String = s"${records.size} ${classOf[DataloadJobRecord].getSimpleName}(s)"
     Try {
 
-      val jobRecordsDataFrame: DataFrame = records.toDF().withSqlNamingConvention()
+      val jobRecordsDataFrame: DataFrame = records.toDF()
+        .coalesce(1)
+        .withSqlNamingConvention()
+
       log.info(s"Successfully converted $recordsDescription to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = properties.getString("spark.log.table.name")
       val partitionColumn: String = properties.getString("spark.log.table.partitionColumn")

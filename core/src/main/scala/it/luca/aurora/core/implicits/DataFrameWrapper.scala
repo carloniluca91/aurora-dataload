@@ -1,15 +1,37 @@
 package it.luca.aurora.core.implicits
 
+import it.luca.aurora.core.Logging
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
+import org.apache.spark.storage.StorageLevel
 
 import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class DataFrameWrapper(private val dataFrame: DataFrame) {
+class DataFrameWrapper(private val dataFrame: DataFrame)
+  extends Logging {
+
+  /**
+   * Repartition this [[DataFrame]] in order to produce output files not bigger than given file size
+   * @param maxFileSizeInBytes maximum file size (in bytes)
+   * @return repartitioned [[DataFrame]]
+   */
+
+  def withOptimizedRepartitioning(maxFileSizeInBytes: Int): DataFrame = {
+
+    val persistedDataFrame: DataFrame = dataFrame.persist(StorageLevel.MEMORY_ONLY)
+    val logicalPlan = persistedDataFrame.queryExecution.logical
+    val dataFrameSizeInBytes: BigInt = persistedDataFrame.sparkSession
+      .sessionState.executePlan(logicalPlan)
+      .optimizedPlan.stats.sizeInBytes
+
+    val numberOfPartitions: Int = math.ceil((dataFrameSizeInBytes / maxFileSizeInBytes).toDouble).toInt
+    log.info(s"Repartitioning given ${classOf[DataFrame].getSimpleName} into $numberOfPartitions partition(s)")
+    persistedDataFrame.coalesce(numberOfPartitions)
+  }
 
   /**
    * Add technical column related to the HDFS path of ingested file

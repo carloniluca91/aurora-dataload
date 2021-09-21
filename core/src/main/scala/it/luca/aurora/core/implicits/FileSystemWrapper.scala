@@ -24,8 +24,10 @@ class FileSystemWrapper(protected val fs: FileSystem)
     val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
     if (invalidInputPaths.nonEmpty) {
 
+      // Log name of invalid files or directories
       val fileOrDirectory: FileStatus => String = x => if (x.isDirectory) "directory" else "file"
-      val invalidInputPathsStr = s"${invalidInputPaths.map { x => s"  Name: ${x.getPath.getName} (${fileOrDirectory(x)}})" }.mkString("\n")}"
+      val invalidInputPathsStr = s"${invalidInputPaths.map { x => s"  Name: ${x.getPath.getName} (${fileOrDirectory(x)}})" }
+        .mkString("\n")}".concat("\n")
       log.warn(s"Found ${invalidInputPaths.size} invalid file(s) (or directories) at path $dirPath.\n$invalidInputPathsStr")
     }
 
@@ -43,9 +45,9 @@ class FileSystemWrapper(protected val fs: FileSystem)
 
     log.info(s"Moving input file $file to $targetDir")
     if (!fs.exists(targetDir)) {
-      log.warn(s"Target directory $targetDir does not exist. Creating it now")
+      log.warn(s"Target directory $targetDir does not exist. Creating it now with permissions $fsPermission")
       fs.mkdirs(targetDir, fsPermission)
-      log.info(s"Successfully created target directory $targetDir")
+      log.info(s"Successfully created target directory $targetDir with permissions $fsPermission")
     }
 
     FileUtil.copy(fs, file, fs, targetDir, true, fs.getConf)
