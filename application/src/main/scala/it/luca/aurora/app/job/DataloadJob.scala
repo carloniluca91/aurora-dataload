@@ -45,7 +45,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
     } else {
 
-      log.info(s"Found ${inputFiles.size} file(s) to be ingested (${inputFiles.map(_.getPath.getName).mkString("|")})")
+      val filesToIngestStr: String = inputFiles.map {
+        x => s"  ${x.getPath.getName}"
+      }.mkString("\n")
+
+      log.info(s"Found ${inputFiles.size} file(s) to be ingested\n\n$filesToIngestStr\n")
       val fs: FileSystem = sparkSession.getFileSystem
       val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
 

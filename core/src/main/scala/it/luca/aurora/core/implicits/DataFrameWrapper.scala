@@ -28,7 +28,8 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
       .sessionState.executePlan(logicalPlan)
       .optimizedPlan.stats.sizeInBytes
 
-    val numberOfPartitions: Int = math.ceil((dataFrameSizeInBytes / maxFileSizeInBytes).toDouble).toInt
+    // Pick the maximum between 1 (allowed minimum) and the estimated number
+    val numberOfPartitions: Int = math.max(math.ceil(dataFrameSizeInBytes.toDouble / maxFileSizeInBytes.toDouble).toInt, 1)
     log.info(s"Repartitioning given ${classOf[DataFrame].getSimpleName} into $numberOfPartitions partition(s)")
     persistedDataFrame.coalesce(numberOfPartitions)
   }

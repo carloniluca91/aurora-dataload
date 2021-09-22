@@ -39,7 +39,7 @@ else
 
   # Spark submit settings
   queue=root.users.osboxes
-  applicationName="Aurora Dataload App - $dataSourceId"
+  applicationName="Aurora Dataload - $dataSourceId"
   applicationLibDir=hdfs:///user/osboxes/apps/aurora_dataload/lib
   applicationJar="$applicationLibDir/aurora_dataload.jar"
   applicationPropertiesFile=spark_application.properties
