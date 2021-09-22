@@ -1,13 +1,13 @@
 package it.luca.aurora.app.datasource
 
 import it.luca.aurora.app.utils.loadProperties
-import it.luca.aurora.configuration.ObjectDeserializer.{DataFormat, deserializeStream, deserializeString}
+import it.luca.aurora.configuration.ObjectDeserializer.{deserializeStream, deserializeString}
+import it.luca.aurora.configuration.datasource.{DataSource, DataSourcesWrapper}
 import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
-import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import org.apache.commons.configuration2.PropertiesConfiguration
@@ -34,9 +34,7 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
 
     // Read .yaml
     val toStream: String => InputStream = s => this.getClass.getClassLoader.getResourceAsStream(s)
-    val applicationYaml = deserializeStream(toStream("aurora_datasources.yaml"),
-      classOf[ApplicationYaml],
-      DataFormat.YAML)
+    val applicationYaml = deserializeStream(toStream("aurora_datasources.json"), classOf[DataSourcesWrapper])
 
     val dataSource: DataSource = applicationYaml.getDataSourceWithId(dataSourceId)
       .withInterpolation(properties)
@@ -46,7 +44,7 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
       .getLines().mkString("\n")
       .withInterpolation(properties)
 
-    val dataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata], DataFormat.JSON)
+    val dataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata])
     isPresent(dataSourceMetadata.getId) shouldBe true
     isPresent(dataSourceMetadata.getDataSourcePaths) shouldBe true
     isPresent(dataSourceMetadata.getEtlConfiguration) shouldBe true

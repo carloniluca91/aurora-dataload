@@ -43,18 +43,18 @@ else
   applicationLibDir=hdfs:///user/osboxes/apps/aurora_dataload/lib
   applicationJar="$applicationLibDir/aurora_dataload.jar"
   applicationPropertiesFile=spark_application.properties
-  applicationYamlFile=datasources.yaml
+  dataSourcesFile=aurora_datasources.json
   applicationLog4File=spark_application_log4j.properties
 
   applicationPropertiesPath="$applicationLibDir/$applicationPropertiesFile"
-  applicationYamlPath="$applicationLibDir/$applicationYamlFile"
-  applicationLog4Path="$applicationLibDir/$applicationLog4File"
-  sparkSubmitFiles=$applicationPropertiesPath,$applicationYamlPath,$applicationLog4Path
+  dataSourcesFilePath="$applicationLibDir/$dataSourcesFile"
+  applicationLog4jPath="$applicationLibDir/$applicationLog4File"
+  sparkSubmitFiles=$applicationPropertiesPath,$dataSourcesFilePath,$applicationLog4jPath
 
   mainClass=it.luca.aurora.app.Main
   propertiesFileOpt="-p"
-  yamlFileOpt="-y"
-  mainClassArgs="$propertiesFileOpt $applicationPropertiesFile $yamlFileOpt $applicationYamlFile $dataSourceIdOpt $dataSourceId"
+  dataSourcesFileOpt="-j"
+  mainClassArgs="$propertiesFileOpt $applicationPropertiesFile $dataSourcesFileOpt $dataSourcesFile $dataSourceIdOpt $dataSourceId"
 
   log "info" "Proceeding with spark-submit command. Details:
         applicationName: $applicationName,
@@ -73,7 +73,7 @@ else
     --driver-class-path /etc/hive/conf \
     --class $mainClass \
     $applicationJar \
-   $propertiesFileOpt $applicationPropertiesFile $yamlFileOpt $applicationYamlFile $dataSourceIdOpt "$dataSourceId"
+   $propertiesFileOpt $applicationPropertiesFile $dataSourcesFileOpt $dataSourcesFile $dataSourceIdOpt "$dataSourceId"
 
   log "info" "Spark-submit completed"
 fi

@@ -27,7 +27,7 @@ class ExtractTest
         |   }
         |}""".stripMargin
 
-    val extract: Extract = ObjectDeserializer.deserializeString(json, classOf[Extract], ObjectDeserializer.DataFormat.JSON)
+    val extract: Extract = ObjectDeserializer.deserializeString(json, classOf[Extract])
     extract.isInstanceOf[CsvExtract] shouldBe true
     val csvExtract: CsvExtract = extract.asInstanceOf[CsvExtract]
     csvExtract.getFileNameRegex shouldEqual fileNameRegex

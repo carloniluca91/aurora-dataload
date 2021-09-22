@@ -5,14 +5,12 @@ val scalaMockVersion = "5.1.0"
 val scoptVersion = "4.0.0"
 val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
-val jacksonVersion = "2.9.9"
 
 // Compile dependencies
 lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provided
 lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % Provided
 lazy val sparkAvro = "org.apache.spark" %% "spark-avro" % sparkVersion % Provided
 lazy val scopt = "com.github.scopt" %% "scopt" % scoptVersion
-lazy val jacksonYaml = "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % jacksonVersion
 lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
 lazy val jsqlParser = "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion
 
@@ -79,7 +77,6 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     libraryDependencies ++= sparkSql ::
-      jacksonYaml ::
       lombok ::
       jsqlParser ::
       scalacTic ::
@@ -93,7 +90,6 @@ lazy val configuration = (project in file("configuration"))
     commonSettings,
     libraryDependencies ++= sparkSql ::
       sparkAvro ::
-      jacksonYaml ::
       lombok ::
       scalacTic ::
       scalaTest ::

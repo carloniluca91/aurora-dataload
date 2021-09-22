@@ -1,7 +1,7 @@
 package it.luca.aurora.configuration.implicits
 
+import it.luca.aurora.configuration.datasource.DataSourcesWrapper
 import it.luca.aurora.configuration.implicits.StringInterpolator.TokenReplaceRegex
-import it.luca.aurora.configuration.yaml.ApplicationYaml
 import org.apache.commons.configuration2.PropertiesConfiguration
 
 import scala.util.matching.Regex
@@ -12,7 +12,7 @@ class StringInterpolator(protected val string: String) {
    * Interpolates this string using as instance of [[PropertiesConfiguration]]
    * @param properties instance of [[PropertiesConfiguration]]
    * @return interpolated string (e.g. a token like ${a.property} is replaced with the value of property
-   *         'a.property' retrieved from the instance of [[ApplicationYaml]] (if present))
+   *         'a.property' retrieved from the instance of [[DataSourcesWrapper]] (if present))
    */
 
   def withInterpolation(properties: PropertiesConfiguration): String = {

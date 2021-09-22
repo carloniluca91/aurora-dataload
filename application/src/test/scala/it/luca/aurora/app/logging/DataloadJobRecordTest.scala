@@ -1,6 +1,6 @@
 package it.luca.aurora.app.logging
 
-import it.luca.aurora.configuration.yaml.DataSource
+import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.core.implicits.SparkContextWrapper
 import org.apache.hadoop.fs.Path
 import org.scalamock.scalatest.MockFactory

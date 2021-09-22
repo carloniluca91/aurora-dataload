@@ -1,5 +1,0 @@
-dataSources:
-  -
-    id: OCS
-    metadataFilePath: ${datasources.metadata.root}/ocs.json
-

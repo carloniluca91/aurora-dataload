@@ -1,11 +1,11 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.logging.DataloadJobRecord
+import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
 import it.luca.aurora.configuration.metadata.{DataSourceMetadata, DataSourcePaths, EtlConfiguration}
-import it.luca.aurora.configuration.yaml.DataSource
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import it.luca.aurora.core.{Logging, SparkJob}

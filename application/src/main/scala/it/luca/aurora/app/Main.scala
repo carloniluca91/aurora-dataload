@@ -20,11 +20,11 @@ object Main
       .action((s, c) => c.copy(propertiesFileName = s.trim))
 
     // Yaml file option
-    opt[String](CliOption.YamlFile.shortOption, CliOption.YamlFile.longOption)
-      .text(CliOption.YamlFile.description)
+    opt[String](CliOption.DataSourcesFile.shortOption, CliOption.DataSourcesFile.longOption)
+      .text(CliOption.DataSourcesFile.description)
       .required()
-      .validate(s => if (s.endsWith(".yaml")) success else failure(s"A .yaml file was expected. Found $s"))
-      .action((s, c) => c.copy(yamlFileName = s.trim))
+      .validate(s => if (s.endsWith(".json")) success else failure(s"A .json file was expected. Found $s"))
+      .action((s, c) => c.copy(dataSourcesFileName = s.trim))
 
     // DataSource option
     opt[String](CliOption.DataSourceId.shortOption, CliOption.DataSourceId.longOption)

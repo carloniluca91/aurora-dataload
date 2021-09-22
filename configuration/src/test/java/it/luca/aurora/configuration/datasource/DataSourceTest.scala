@@ -1,4 +1,4 @@
-package it.luca.aurora.configuration.yaml
+package it.luca.aurora.configuration.datasource
 
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.scalatest.flatspec.AnyFlatSpec
@@ -8,7 +8,7 @@ class DataSourceTest
   extends AnyFlatSpec
     with should.Matchers {
 
-  s"A ${classOf[DataSource]}" should "" in {
+  s"A ${classOf[DataSource]}" should "correclty interpolate metadata file path" in {
 
     val (key, value, fileName) = ("datasources.metadata.root", "/user/apps/metadata", "file.json")
     val properties = new PropertiesConfiguration

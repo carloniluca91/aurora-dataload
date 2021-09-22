@@ -1,4 +1,4 @@
-package it.luca.aurora.configuration.yaml;
+package it.luca.aurora.configuration.datasource;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

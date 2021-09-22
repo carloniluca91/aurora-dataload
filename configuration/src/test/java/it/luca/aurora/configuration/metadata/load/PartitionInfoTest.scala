@@ -1,7 +1,6 @@
 package it.luca.aurora.configuration.metadata.load
 
 import it.luca.aurora.configuration.ObjectDeserializer
-import it.luca.aurora.configuration.ObjectDeserializer.DataFormat
 import it.luca.aurora.configuration.metadata.JsonField
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
@@ -25,7 +24,7 @@ class PartitionInfoTest
          |   "${JsonField.COLUMN_EXPRESSION}": "$columnExpression"
          |}""".stripMargin
 
-    val partitionInfo = ObjectDeserializer.deserializeString(json, classOf[PartitionInfo], DataFormat.JSON)
+    val partitionInfo = ObjectDeserializer.deserializeString(json, classOf[PartitionInfo])
     partitionInfo.isInstanceOf[ColumnExpressionInfo] shouldBe true
     val columnExpressionInfo = partitionInfo.asInstanceOf[ColumnExpressionInfo]
     columnExpressionInfo.getType shouldEqual PartitionInfo.COLUMN_EXPRESSION
@@ -53,7 +52,7 @@ class PartitionInfoTest
          |    "${JsonField.CONFIGURATION}": $fileNameRegexConfiguration
          |}""".stripMargin
 
-    val partitionInfo = ObjectDeserializer.deserializeString(json, classOf[PartitionInfo], DataFormat.JSON)
+    val partitionInfo = ObjectDeserializer.deserializeString(json, classOf[PartitionInfo])
     partitionInfo.isInstanceOf[FileNameRegexInfo] shouldBe true
     val fileNameRegexInfo = partitionInfo.asInstanceOf[FileNameRegexInfo]
     fileNameRegexInfo.getType shouldEqual PartitionInfo.FILE_NAME_REGEX

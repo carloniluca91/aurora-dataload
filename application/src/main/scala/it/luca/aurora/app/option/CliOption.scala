@@ -14,6 +14,6 @@ object CliOption extends Enumeration {
   implicit def valueToEnumVal(x: Value): CliOptionVal = x.asInstanceOf[CliOptionVal]
 
   val PropertiesFile: CliOptionVal = CliOptionVal('p', "properties", "Name of .properties file for Spark application")
-  val YamlFile: CliOptionVal = CliOptionVal('y', "yaml", "Name of .yaml file with available datasources")
+  val DataSourcesFile: CliOptionVal = CliOptionVal('j', "json", "Name of .json file with available datasources")
   val DataSourceId: CliOptionVal = CliOptionVal('d', "datasource", "Id of datasource for which data must be loaded")
 }

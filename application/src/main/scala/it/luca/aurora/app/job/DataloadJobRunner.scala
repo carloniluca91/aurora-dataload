@@ -2,10 +2,10 @@ package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
 import it.luca.aurora.app.utils.loadProperties
-import it.luca.aurora.configuration.ObjectDeserializer.{DataFormat, deserializeFile, deserializeString}
+import it.luca.aurora.configuration.ObjectDeserializer.{deserializeFile, deserializeString}
+import it.luca.aurora.configuration.datasource.{DataSource, DataSourcesWrapper}
 import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
-import it.luca.aurora.configuration.yaml.{ApplicationYaml, DataSource}
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
 import org.apache.commons.configuration2.PropertiesConfiguration
@@ -30,18 +30,18 @@ class DataloadJobRunner
     val dataSourceId: String = cliArguments.dataSourceId
     Try {
 
-      // Deserialize both .properties and .yaml file
+      // Deserialize both .properties and dataSources .json file
       val properties: PropertiesConfiguration = loadProperties(propertiesFileName)
       val impalaJDBCConnection: Connection = initImpalaJDBCConnection(properties)
-      val yaml: ApplicationYaml = deserializeFile(new File(cliArguments.yamlFileName), classOf[ApplicationYaml])
-      val dataSource: DataSource = yaml.getDataSourceWithId(dataSourceId).withInterpolation(properties)
+      val wrapper: DataSourcesWrapper = deserializeFile(new File(cliArguments.dataSourcesFileName), classOf[DataSourcesWrapper])
+      val dataSource: DataSource = wrapper.getDataSourceWithId(dataSourceId).withInterpolation(properties)
 
       // Read metadata file as a single String, interpolate it and deserialize it into a Java object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
       val jsonString: String = fs.readFileAsString(dataSource.getMetadataFilePath).withInterpolation(properties)
       log.info(s"Successfully interpolated content of file ${dataSource.getMetadataFilePath}")
-      val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata], DataFormat.JSON)
+      val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata])
 
       // Check files within dataSource's input folder
       val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding, dataSourceMetadata.getFileNameRegex)

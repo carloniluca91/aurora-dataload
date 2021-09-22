@@ -1,4 +1,4 @@
-package it.luca.aurora.configuration.yaml;
+package it.luca.aurora.configuration.datasource;
 
 public class UnExistingDataSourceException extends Exception {
 
