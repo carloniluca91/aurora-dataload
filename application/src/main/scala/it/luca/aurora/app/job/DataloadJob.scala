@@ -90,8 +90,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
       val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
       log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
-      val overallFilterCol: Column = filterStatementsAndCols.map{ _._2 }.reduce(_ && _)
-      val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { x => when(!x._2, x._1) }
+      val overallFilterCol: Column = filterStatementsAndCols.map { case (_, column) => column }.reduce(_ && _)
+      val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { case (string, column) => when(!column, string) }
 
       // Partitioning
       val partitionInfo: PartitionInfo = load.getPartitionInfo
