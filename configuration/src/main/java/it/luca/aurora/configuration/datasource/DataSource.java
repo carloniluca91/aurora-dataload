@@ -1,17 +1,15 @@
 package it.luca.aurora.configuration.datasource;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@AllArgsConstructor
 public class DataSource {
 
-    public static final String ID = "id";
-    public static final String METADATA_FILE_PATH = "metadataFilePath";
     public static final String TOKEN_REPLACE_REGEX = "\\$\\{([\\w.]+)}";
 
     @Getter
@@ -24,14 +22,6 @@ public class DataSource {
     public String toString() {
 
         return String.format("Id: %s, Metadata: %s", id, metadataFilePath);
-    }
-
-    @JsonCreator
-    public DataSource(@JsonProperty(ID) String id,
-                      @JsonProperty(METADATA_FILE_PATH) String metadataFilePath) {
-
-        this.id = id;
-        this.metadataFilePath = metadataFilePath;
     }
 
     /**

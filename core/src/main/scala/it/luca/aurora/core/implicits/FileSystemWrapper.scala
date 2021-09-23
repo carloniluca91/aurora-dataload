@@ -11,7 +11,7 @@ class FileSystemWrapper(protected val fs: FileSystem)
   extends Logging {
 
   /**
-   * Return list of [[FileStatus]] related to files within given directory path whose name match given regex
+   * Return list of [[FileStatus]] related to files within given directory path whose name matches given regex
    * @param dirPath [[Path]] of directory to check
    * @param fileNameRegex [[Regex]] to be matched by valid files
    * @return list of [[FileStatus]]

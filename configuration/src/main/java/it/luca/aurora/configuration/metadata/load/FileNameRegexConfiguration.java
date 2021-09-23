@@ -5,10 +5,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
-@Getter
+import java.time.format.DateTimeFormatter;
+
 public class FileNameRegexConfiguration {
 
+    @Getter
     private final Integer regexGroup;
+
     private final String inputPattern;
     private final String outputPattern;
 
@@ -20,5 +23,25 @@ public class FileNameRegexConfiguration {
         this.regexGroup = regexGroup;
         this.inputPattern = inputPattern;
         this.outputPattern = outputPattern;
+    }
+
+    /**
+     * Return formatter based on inputPattern
+     * @return instance of {@link DateTimeFormatter}
+     */
+
+    public DateTimeFormatter getInputFormatter() {
+
+        return DateTimeFormatter.ofPattern(inputPattern);
+    }
+
+    /**
+     * Return formatter based on outputPattern
+     * @return instance of {@link DateTimeFormatter}
+     */
+
+    public DateTimeFormatter getOutputFormatter() {
+
+        return DateTimeFormatter.ofPattern(outputPattern);
     }
 }

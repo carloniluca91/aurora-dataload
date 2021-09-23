@@ -36,7 +36,7 @@ class DataloadJobRunner
       val wrapper: DataSourcesWrapper = deserializeFile(new File(cliArguments.dataSourcesFileName), classOf[DataSourcesWrapper])
       val dataSource: DataSource = wrapper.getDataSourceWithId(dataSourceId).withInterpolation(properties)
 
-      // Read metadata file as a single String, interpolate it and deserialize it into a Java object
+      // Read metadata file as a single String, interpolate it and deserialize it as Java object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
       val jsonString: String = fs.readFileAsString(dataSource.getMetadataFilePath).withInterpolation(properties)
@@ -46,13 +46,22 @@ class DataloadJobRunner
       // Check files within dataSource's input folder
       val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding, dataSourceMetadata.getFileNameRegex)
       val validInputFiles: Seq[FileStatus] = fs.getListOfMatchingFiles(new Path(landingPath), fileNameRegex.r)
-      new DataloadJob(sparkSession, impalaJDBCConnection, properties, dataSource, dataSourceMetadata)
-        .processFiles(validInputFiles)
+      if (validInputFiles.isEmpty) {
+        log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
+      } else {
+        new DataloadJob(sparkSession, impalaJDBCConnection, properties, dataSource, dataSourceMetadata)
+          .processFiles(validInputFiles)
+      }
     } match {
       case Success(_) => log.info(s"Successfully executed ingestion job for dataSource $dataSourceId")
       case Failure(exception) => log.error(s"Caught exception while executing ingestion job for dataSource $dataSourceId. Stack trace: ", exception)
     }
   }
+
+  /**
+   * Initialize [[SparkSession]]
+   * @return instance of [[SparkSession]]
+   */
 
   private def initSparkSession(): SparkSession = {
 

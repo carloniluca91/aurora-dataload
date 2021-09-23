@@ -38,37 +38,27 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
   def processFiles(inputFiles: Seq[FileStatus]): Unit = {
 
-    val fileNameRegex: String = dataSourceMetadata.getFileNameRegex
+    val filesToIngestStr: String = inputFiles.map { x => s"  ${x.getPath.getName}" }.mkString("\n")
+    log.info(s"Found ${inputFiles.size} file(s) to be ingested\n\n$filesToIngestStr\n")
+    val fs: FileSystem = sparkSession.getFileSystem
     val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
-    val landingPath: String = dataSourcePaths.getLanding
-    if (inputFiles.isEmpty) {
-      log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
-    } else {
+    val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
 
-      val filesToIngestStr: String = inputFiles.map {
-        x => s"  ${x.getPath.getName}"
-      }.mkString("\n")
+      // Depending on job execution, set optional exception and target directory where processed file will be moved
+      val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
+        case Success(_) => (None, dataSourcePaths.getSuccess)
+        case Failure(exception) =>
 
-      log.info(s"Found ${inputFiles.size} file(s) to be ingested\n\n$filesToIngestStr\n")
-      val fs: FileSystem = sparkSession.getFileSystem
-      val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
-
-        // Depending on job execution, set optional exception and target directory where processed file will be moved
-        val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
-          case Success(_) => (None, dataSourcePaths.getSuccess)
-          case Failure(exception) =>
-
-            log.error(s"Caught exception while ingesting file ${inputFile.getPath.getName}. Stack trace: ", exception)
-            (Some(exception), dataSourcePaths.getError)
-        }
-
-        val filePath: Path = inputFile.getPath
-        fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), fsPermission)
-        DataloadJobRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
+          log.error(s"Caught exception while ingesting file ${inputFile.getPath.getName}. Stack trace: ", exception)
+          (Some(exception), dataSourcePaths.getError)
       }
 
-      writeDataloadJobRecords(dataloadJobRecords)
+      val filePath: Path = inputFile.getPath
+      fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), fsPermission)
+      DataloadJobRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
     }
+
+    writeDataloadJobRecords(dataloadJobRecords)
   }
 
   /**
@@ -97,7 +87,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val partitionInfo: PartitionInfo = load.getPartitionInfo
       val partitionColumnName: String = partitionInfo.getColumnName
       val partitionCol: Column = partitionInfo match {
-        case r: FileNameRegexInfo => lit(r.getDateFromFileName(extract.getFileNameRegex, filePath))
+        case f: FileNameRegexInfo => lit(f.getDateFromFileName(extract.getFileNameRegex, filePath))
         case c: ColumnExpressionInfo =>
           val column: Column = SqlExpressionParser.parse(c.getColumnExpression)
           log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnExpressionInfo].getSimpleName}")
@@ -105,18 +95,20 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       }
 
       // Invalid records (i.e. that do not satisfy all of dataSource filters)
+      val failedChecksReportColumnName: String = properties.getString("spark.column.failedChecksReport")
+      val inputFilePathColumnName: String = properties.getString("spark.column.inputFilePath")
       val errorDf: DataFrame = inputDataFrame.filter(!overallFilterCol)
-        .withColumn("failed_checks_report", concat_ws(", ", filterFailureReportCols: _*))
-        .withInputFilePathCol(filePath)
+        .withColumn(failedChecksReportColumnName, concat_ws(", ", filterFailureReportCols: _*))
+        .withInputFilePathCol(inputFilePathColumnName, filePath)
         .withTechnicalColumns()
         .withColumn(partitionColumnName, partitionCol)
 
       // Valid records
       val trustedDfColumns: Seq[Column] = transform.getTransformations.map { SqlExpressionParser.parse }
-      log.info(s"Successfully converted all of ${trustedDfColumns.size} trasformation(s)")
+      log.info(s"Successfully parsed all of ${trustedDfColumns.size} trasformation(s)")
       val nonFinalTrustedDf: DataFrame = inputDataFrame.filter(overallFilterCol)
         .select(trustedDfColumns: _*)
-        .withInputFilePathCol(filePath)
+        .withInputFilePathCol(inputFilePathColumnName, filePath)
         .withTechnicalColumns()
         .withColumn(partitionColumnName, partitionCol)
 
@@ -127,15 +119,15 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      saveAsOrInsertInto(finalTrustedDf.withOptimizedRepartitioning(maxFileSizeInBytes), trustedTable, partitionColumnName)
-      saveAsOrInsertInto(errorDf.withOptimizedRepartitioning(maxFileSizeInBytes), errorTable, partitionColumnName)
+      saveAsOrInsertIntoIfNotEmpty(finalTrustedDf, trustedTable, partitionColumnName)
+      saveAsOrInsertIntoIfNotEmpty(errorDf, errorTable, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
     }
   }
 
   /**
-   * Save some [[DataloadJobRecord]]
-   * @param records instances of [[DataloadJobRecord]]
+   * Save log records produced by the ingestion job
+   * @param records [[Seq]] of [[DataloadJobRecord]]
    */
 
   protected def writeDataloadJobRecords(records: Seq[DataloadJobRecord]): Unit = {
@@ -152,10 +144,28 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       log.info(s"Successfully converted $recordsDescription to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = properties.getString("spark.log.table.name")
       val partitionColumn: String = properties.getString("spark.log.table.partitionColumn")
-      saveAsOrInsertInto(jobRecordsDataFrame, targetTable, partitionColumn)
+      super.saveAsOrInsertInto(jobRecordsDataFrame, targetTable, partitionColumn)
     } match {
       case Success(_) => log.info(s"Successfully saved all of $recordsDescription")
       case Failure(exception) => log.warn(s"Caught exception while saving $recordsDescription. Stack trace: ", exception)
+    }
+  }
+
+  /**
+   * If given dataframe is not empty, save it to given table
+   * @param dataFrame [[DataFrame]]
+   * @param fqTableName fully qualified (i.e. db.table) name of target table
+   * @param partitionColumn partitioning column
+   */
+
+  protected def saveAsOrInsertIntoIfNotEmpty(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Unit = {
+
+    val dataFrameClass = classOf[DataFrame].getSimpleName
+    if (dataFrame.isEmpty) {
+      log.warn(s"Given $dataFrameClass for target table $fqTableName is empty. Thus, no data will be written to it")
+    } else {
+      val repartitionedDataFrame: DataFrame = dataFrame.withOptimizedRepartitioning(maxFileSizeInBytes)
+      super.saveAsOrInsertInto(repartitionedDataFrame, fqTableName, partitionColumn)
     }
   }
 }

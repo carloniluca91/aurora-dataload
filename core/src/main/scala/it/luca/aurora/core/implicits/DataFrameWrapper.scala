@@ -15,6 +15,16 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
   extends Logging {
 
   /**
+   * Add technical column related to the HDFS path of ingested file
+   * @param columnName name for new column
+   * @param filePath instance of [[Path]]
+   * @return original dataFrame with column "input_file_path"
+   */
+
+  def withInputFilePathCol(columnName: String, filePath: Path): DataFrame =
+    dataFrame.withColumn(columnName, lit(filePath.toString))
+
+  /**
    * Repartition this [[DataFrame]] in order to produce output files not bigger than given file size
    * @param maxFileSizeInBytes maximum file size (in bytes)
    * @return repartitioned [[DataFrame]]
@@ -33,15 +43,6 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
     log.info(s"Repartitioning given ${classOf[DataFrame].getSimpleName} into $numberOfPartitions partition(s)")
     persistedDataFrame.coalesce(numberOfPartitions)
   }
-
-  /**
-   * Add technical column related to the HDFS path of ingested file
-   * @param filePath instance of [[Path]]
-   * @return original dataFrame with column "input_file_path"
-   */
-
-  def withInputFilePathCol(filePath: Path): DataFrame =
-    dataFrame.withColumn("input_file_path", lit(filePath.toString))
 
   /**
    * Add some technical columns related to current Spark application to a [[DataFrame]]

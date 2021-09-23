@@ -5,50 +5,45 @@ import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import java.sql.{Connection, SQLException}
 
 abstract class SparkJob(protected val sparkSession: SparkSession,
-                        protected val impalaJDBCConnection: Connection) extends Logging {
+                        protected val impalaJDBCConnection: Connection)
+  extends Logging {
 
   /**
    * Saves a [[DataFrame]] to a Hive table and issues an ImpalaQL statement to make data available to Impala
    * @param dataFrame [[DataFrame]] to be saved
    * @param fqTableName fully qualified (i.e. db.table) name of target table
-   * @param partitionColumn column to be used for partitioning
+   * @param partitionColumn partition column
    */
 
   protected def saveAsOrInsertInto(dataFrame: DataFrame,
                                    fqTableName: String,
                                    partitionColumn: String): Unit = {
 
-    val (saveMode, dfClass): (SaveMode, String) = (SaveMode.Append, classOf[DataFrame].getSimpleName)
-    if (dataFrame.isEmpty) {
-      log.warn(s"Given $dfClass for target table $fqTableName is empty. Thus, no data will be written to it")
+    val saveMode = SaveMode.Append
+    val dataFrameClass = classOf[DataFrame].getSimpleName
+    log.info(s"Saving given $dataFrameClass to target table $fqTableName. Schema\n\n${dataFrame.schema.treeString}")
+    val tableExists: Boolean = sparkSession.catalog.tableExists(fqTableName)
+    if (tableExists) {
+
+      log.info(s"Target table $fqTableName already exists. Matching given $dataFrameClass to it and saving using .insertInto")
+      val targetTableColumns: Seq[String] = sparkSession.table(fqTableName).columns
+      dataFrame.selectExpr(targetTableColumns: _*)
+        .write.mode(saveMode)
+        .insertInto(fqTableName)
     } else {
 
-      log.info(s"Saving given $dfClass to target table $fqTableName. Schema\n\n${dataFrame.schema.treeString}")
-      val tableExists: Boolean = sparkSession.catalog.tableExists(fqTableName)
-      if (tableExists) {
-
-        log.info(s"Target table $fqTableName already exists. Matching given $dfClass to it and saving using .insertInto")
-        val targetTableColumns: Seq[String] = sparkSession.table(fqTableName).columns
-        dataFrame.selectExpr(targetTableColumns: _*)
-          .write.mode(saveMode)
-          .insertInto(fqTableName)
-      } else {
-
-        log.warn(s"Target table $fqTableName does not exist. Creating it now using .saveAsTable")
-        dataFrame.write
-          .mode(saveMode)
-          .format("parquet")
-          .partitionBy(partitionColumn)
-          .saveAsTable(fqTableName)
-      }
-
-      dataFrame.unpersist()
-      executeImpalaStatement(fqTableName, tableExists)
+      log.warn(s"Target table $fqTableName does not exist. Creating it now using .saveAsTable")
+      dataFrame.write.mode(saveMode)
+        .format("parquet")
+        .partitionBy(partitionColumn)
+        .saveAsTable(fqTableName)
     }
+
+    executeImpalaStatement(fqTableName, tableExists)
   }
 
   /**
-   * Execute an INVALIDATE METADATA or REFRESH ImpalaQLStatement
+   * Execute an INVALIDATE METADATA or REFRESH ImpalaQLStatement depending on table existence
    * @param fqTableName fully qualified table name
    * @param tableExists whether given table already exists or not
    * @throws java.sql.SQLException if statement execution fails

@@ -17,7 +17,6 @@ import lombok.Getter;
 })
 public abstract class PartitionInfo {
 
-
     public final static String COLUMN_EXPRESSION = "COLUMN_EXPRESSION";
     public final static String FILE_NAME_REGEX = "FILE_NAME_REGEX";
 

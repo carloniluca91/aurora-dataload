@@ -51,8 +51,7 @@ public class Transform {
             log.info("No duplicates will be removed from input {}", DATASET_CLASS);
             maybeDroppedDuplicatesDataset = input;
         } else {
-            log.info("Removing duplicates from input {} according to columns: {}",
-                    DATASET_CLASS, String.join("|", dropDuplicates));
+            log.info("Removing duplicates from input {} according to columns: {}", DATASET_CLASS, String.join("|", dropDuplicates));
             maybeDroppedDuplicatesDataset = input.dropDuplicates(dropDuplicates.toArray(new String[0]));
         }
 
@@ -61,8 +60,7 @@ public class Transform {
             log.info("No columns to drop from input {}", DATASET_CLASS);
             maybeDroppedDuplicatesAndColumnsDataset = maybeDroppedDuplicatesDataset;
         } else {
-            log.info("Dropping following columns from input {}: {}",
-                    DATASET_CLASS, String.join("|", dropColumns));
+            log.info("Dropping following columns from input {}: {}", DATASET_CLASS, String.join("|", dropColumns));
             maybeDroppedDuplicatesAndColumnsDataset = maybeDroppedDuplicatesDataset.drop(dropColumns.toArray(new String[0]));
         }
 
