@@ -3,14 +3,17 @@ package it.luca.aurora.configuration.metadata.load;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import it.luca.aurora.configuration.metadata.JsonField;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.Path;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
+@Getter
 public class FileNameRegexInfo extends PartitionInfo {
 
     private final FileNameRegexConfiguration configuration;
@@ -21,7 +24,7 @@ public class FileNameRegexInfo extends PartitionInfo {
                              @JsonProperty(JsonField.CONFIGURATION) FileNameRegexConfiguration configuration) {
 
         super(type, columnName);
-        this.configuration = configuration;
+        this.configuration = Objects.requireNonNull(configuration, JsonField.CONFIGURATION);
     }
 
     /**

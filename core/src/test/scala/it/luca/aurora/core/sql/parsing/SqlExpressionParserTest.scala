@@ -168,6 +168,19 @@ class SqlExpressionParserTest
     }
   }
 
+  it should s"parse a ${classOf[MatchesRegex].getSimpleName} function" in {
+
+    val regexStr = "^\\d+$"
+    val expression = s"${FunctionName.MatchesRegex}(${SqlExpressionTest.firstColumnName}, '$regexStr')"
+    val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+      override protected def computeExpectedValue(input: String): Boolean = Option(input).isDefined &&
+        regexStr.r.findFirstMatchIn(input).isDefined
+    }
+
+    val inputSamples: Seq[String] = null :: "hello" :: "1" :: "27" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
   it should s"parse a ${classOf[NeitherNullOrBlank].getSimpleName} function" in {
 
     val expression = s"${FunctionName.NeitherNullOrBlank}(${SqlExpressionTest.firstColumnName})"

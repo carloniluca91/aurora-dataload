@@ -3,11 +3,11 @@ package it.luca.aurora.configuration.metadata.load;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import it.luca.aurora.configuration.metadata.JsonField;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
-@AllArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
         property = JsonField.TYPE,
         visible = true)
@@ -22,5 +22,11 @@ public abstract class PartitionInfo {
 
     protected final String type;
     protected final String columnName;
+
+    public PartitionInfo(String type, String columnName) {
+
+        this.type = Objects.requireNonNull(type, JsonField.TYPE);
+        this.columnName = Objects.requireNonNull(columnName, JsonField.COLUMN_NAME);
+    }
 
 }

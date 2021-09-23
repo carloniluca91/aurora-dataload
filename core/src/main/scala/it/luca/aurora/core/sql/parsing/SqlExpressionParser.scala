@@ -60,17 +60,17 @@ object SqlExpressionParser
   protected def parsePartialMatchCase(input: String): Either[String, Column] = {
 
     // Define a map holding regexes and related match-to-column conversion
-    val specialCasesMap: Map[String, (Regex, Regex.Match => Column)] = Map(
-      "CAST" -> ("^CAST\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2))),
-      "ALIAS" -> ("^(\\w+\\(?.+\\)?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(2)))
-    )
+    val specialCasesMap: Seq[(Regex, Regex.Match => Column)] = Seq(
+      ("^CAST\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2).toLowerCase)),
+      ("^(\\w+\\(?.+\\)?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(2))),
+      ("^'(.+)' AS (\\w+)$".r, m => lit(m.group(1)).as(m.group(2))))
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion
     specialCasesMap.find {
-      case (_, (regex, _)) => regex.findFirstMatchIn(input).isDefined
+      case (regex, _) => regex.findFirstMatchIn(input).isDefined
     } match {
       case Some(tuple) =>
-        val (_, (regex, matchToColumn)): (String, (Regex, Regex.Match => Column)) = tuple
+        val (regex, matchToColumn): (Regex, Regex.Match => Column) = tuple
         Right(matchToColumn(regex.findFirstMatchIn(input).get))
       case None => Left(input)
     }
@@ -181,6 +181,7 @@ object SqlExpressionParser
       case FunctionName.IsFlag => IsFlag(function)
       case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
+      case FunctionName.MatchesRegex => MatchesRegex(function)
       case FunctionName.NeitherNullOrBlank => NeitherNullOrBlank(function)
       case FunctionName.Substring => Substring(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)

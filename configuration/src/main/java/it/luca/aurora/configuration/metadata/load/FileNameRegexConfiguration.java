@@ -7,11 +7,10 @@ import lombok.Getter;
 
 import java.time.format.DateTimeFormatter;
 
+@Getter
 public class FileNameRegexConfiguration {
 
-    @Getter
     private final Integer regexGroup;
-
     private final String inputPattern;
     private final String outputPattern;
 

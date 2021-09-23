@@ -41,7 +41,7 @@ public abstract class Extract {
         String fileName = path.getName();
         log.info("Starting to read input file {}", fileName);
         Dataset<Row> dataset = invokeReader(setUpReader(sparkSession)).apply(path.toString());
-        log.info("Successfully read input file {}", fileName);
+        log.info("Successfully read input file {}. Schema:\n\n{}", fileName, dataset.schema().treeString());
         return dataset;
     }
 }

@@ -12,6 +12,7 @@ object FunctionName extends Enumeration {
   val LeftPad = "lpad"
   val LeftTrim = "ltrim"
   val MatchesDateFormat = "matches_date_format"
+  val MatchesRegex = "matches_regex"
   val MatchesTimestampFormat = "matches_timestamp_format"
   val NeitherNullOrBlank = "neither_null_or_blank"
   val RightPad = "rpad"
