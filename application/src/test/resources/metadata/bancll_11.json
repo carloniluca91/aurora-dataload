@@ -1,9 +1,9 @@
 {
   "id": "BANCLL11",
   "dataSourcePaths": {
-    "landing": "${datasources.data.root}/cedacri/bancll11/landing",
-    "success": "${datasources.data.root}/cedacri/bancll11/success",
-    "error": "${datasources.data.root}/cedacri/bancll11/failed"
+    "landing": "${datasources.data.root}/cedacri/bancll_11/landing",
+    "success": "${datasources.data.root}/cedacri/bancll_11/success",
+    "error": "${datasources.data.root}/cedacri/bancll_11/failed"
   },
   "etlConfiguration": {
     "extract": {
