@@ -6,6 +6,7 @@ import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 @Getter
 public class FileNameRegexConfiguration {
@@ -19,9 +20,9 @@ public class FileNameRegexConfiguration {
                                       @JsonProperty(JsonField.INPUT_PATTERN) String inputPattern,
                                       @JsonProperty(JsonField.OUTPUT_PATTERN) String outputPattern) {
 
-        this.regexGroup = regexGroup;
-        this.inputPattern = inputPattern;
-        this.outputPattern = outputPattern;
+        this.regexGroup = Objects.requireNonNull(regexGroup, JsonField.REGEX_GROUP);
+        this.inputPattern = Objects.requireNonNull(inputPattern, JsonField.INPUT_PATTERN);
+        this.outputPattern = Objects.requireNonNull(outputPattern, JsonField.OUTPUT_PATTERN);
     }
 
     /**

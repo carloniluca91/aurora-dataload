@@ -8,45 +8,46 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-case class DataloadJobRecord(applicationId: String,
-                             applicationName: String,
-                             applicationStartTime: Timestamp,
-                             applicationStartDate: String,
-                             dataSourceId: String,
-                             metadataFilePath: String,
-                             ingestedFile: String,
-                             ingestionOperationCode: String,
-                             exceptionClass: Option[String],
-                             exceptionMessage: Option[String],
-                             yarnApplicationUiUrl: String,
-                             yarnApplicationLogCmd: String,
-                             insertTs: Timestamp = Timestamp.valueOf(LocalDateTime.now()),
-                             insertDt: String = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
-                             month: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM")))
+case class DataloadJobLogRecord(applicationId: String,
+                                applicationName: String,
+                                applicationStartTime: Timestamp,
+                                applicationStartDate: String,
+                                dataSourceId: String,
+                                metadataFilePath: String,
+                                ingestedFile: String,
+                                ingestionOperationCode: String,
+                                exceptionClass: Option[String],
+                                exceptionMessage: Option[String],
+                                yarnApplicationUiUrl: String,
+                                yarnApplicationLogCmd: String,
+                                insertTs: Timestamp = Timestamp.valueOf(LocalDateTime.now()),
+                                insertDt: String = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                month: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM")))
 
-object DataloadJobRecord {
+object DataloadJobLogRecord {
 
   val OK = "OK"
   val KO = "KO"
 
   /**
-   * Create an instance of [[DataloadJobRecord]]
+   * Create an instance of [[DataloadJobLogRecord]]
+   *
    * @param sparkContext [[SparkContextWrapper]] of current Spark application
    * @param dataSource instance of [[DataSource]]
    * @param filePath [[Path]] of ingested file
    * @param yarnUiUrl Root Url of Yarn UI
    * @param exceptionOpt optional exception to be reported
-   * @return instance of [[DataloadJobRecord]]
+   * @return instance of [[DataloadJobLogRecord]]
    */
 
   def apply(sparkContext: SparkContextWrapper,
             dataSource: DataSource,
             yarnUiUrl: String,
             filePath: Path,
-            exceptionOpt: Option[Throwable]): DataloadJobRecord = {
+            exceptionOpt: Option[Throwable]): DataloadJobLogRecord = {
 
     val appId: String = sparkContext.applicationId
-    DataloadJobRecord(applicationId = appId,
+    DataloadJobLogRecord(applicationId = appId,
       applicationName = sparkContext.appName,
       applicationStartTime = sparkContext.startTimeAsTimestamp,
       applicationStartDate = sparkContext.startTimeAsString("yyyy-MM-dd"),

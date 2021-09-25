@@ -9,6 +9,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -23,7 +24,7 @@ public class CsvExtract extends Extract {
                       @JsonProperty(JsonField.CONFIGURATION) CsvExtractConfiguration configuration) {
 
         super(type, fileNameRegex);
-        this.configuration = configuration;
+        this.configuration = Objects.requireNonNull(configuration, JsonField.CONFIGURATION);
     }
 
     @Override

@@ -3,7 +3,6 @@ package it.luca.aurora.configuration.metadata.extract;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import it.luca.aurora.configuration.metadata.JsonField;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.Path;
@@ -12,11 +11,11 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 @Slf4j
 @Getter
-@AllArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
         property = JsonField.TYPE,
         visible = true)
@@ -31,6 +30,12 @@ public abstract class Extract {
 
     protected final String type;
     protected final String fileNameRegex;
+
+    public Extract(String type, String fileNameRegex) {
+
+        this.type = Objects.requireNonNull(type, JsonField.TYPE);
+        this.fileNameRegex = Objects.requireNonNull(fileNameRegex, JsonField.FILE_NAME_REGEX);
+    }
 
     protected abstract DataFrameReader setUpReader(SparkSession sparkSession);
 

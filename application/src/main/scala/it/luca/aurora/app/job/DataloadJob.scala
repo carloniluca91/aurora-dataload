@@ -1,6 +1,6 @@
 package it.luca.aurora.app.job
 
-import it.luca.aurora.app.logging.DataloadJobRecord
+import it.luca.aurora.app.logging.DataloadJobLogRecord
 import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
@@ -27,7 +27,9 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   extends SparkJob(sparkSession, impalaJDBCConnection)
     with Logging {
 
-  protected final val fsPermission: FsPermission = FsPermission.valueOf(properties.getString("hdfs.defaultPermissions"))
+  protected final val fs: FileSystem = sparkSession.getFileSystem
+  protected final val targetDirectoryPermissions: FsPermission = FsPermission.valueOf(properties.getString("hadoop.target.directory.permissions"))
+  protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.permissions"))
   protected final val maxFileSizeInBytes: Int = properties.getInt("spark.output.file.maxSizeInBytes")
   protected final val yarnUiUrl: String = properties.getString("yarn.ui.url")
 
@@ -40,9 +42,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
     val filesToIngestStr: String = inputFiles.map { x => s"  ${x.getPath.getName}" }.mkString("\n")
     log.info(s"Found ${inputFiles.size} file(s) to be ingested\n\n$filesToIngestStr\n")
-    val fs: FileSystem = sparkSession.getFileSystem
     val dataSourcePaths: DataSourcePaths = dataSourceMetadata.getDataSourcePaths
-    val dataloadJobRecords: Seq[DataloadJobRecord] = inputFiles.map { inputFile =>
+    val dataloadJobLogRecords: Seq[DataloadJobLogRecord] = inputFiles.map { inputFile =>
 
       // Depending on job execution, set optional exception and target directory where processed file will be moved
       val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
@@ -54,11 +55,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       }
 
       val filePath: Path = inputFile.getPath
-      fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), fsPermission)
-      DataloadJobRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
+      fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), targetDirectoryPermissions)
+      DataloadJobLogRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
     }
 
-    writeDataloadJobRecords(dataloadJobRecords)
+    writeJobLogRecords(dataloadJobLogRecords)
   }
 
   /**
@@ -119,32 +120,33 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       // Write data
       val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      saveAsOrInsertIntoIfNotEmpty(finalTrustedDf, trustedTable, partitionColumnName)
-      saveAsOrInsertIntoIfNotEmpty(errorDf, errorTable, partitionColumnName)
+      saveIfNotEmpty(finalTrustedDf, trustedTable, partitionColumnName)
+      saveIfNotEmpty(errorDf, errorTable, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
     }
   }
 
   /**
    * Save log records produced by the ingestion job
-   * @param records [[Seq]] of [[DataloadJobRecord]]
+   *
+   * @param records [[Seq]] of [[DataloadJobLogRecord]]
    */
 
-  protected def writeDataloadJobRecords(records: Seq[DataloadJobRecord]): Unit = {
+  protected def writeJobLogRecords(records: Seq[DataloadJobLogRecord]): Unit = {
 
     import sparkSession.implicits._
 
-    val recordsDescription: String = s"${records.size} ${classOf[DataloadJobRecord].getSimpleName}(s)"
+    val recordsDescription: String = s"${records.size} ${classOf[DataloadJobLogRecord].getSimpleName}(s)"
     Try {
 
       val jobRecordsDataFrame: DataFrame = records.toDF()
-        .coalesce(1)
         .withSqlNamingConvention()
+        .coalesce(1)
 
       log.info(s"Successfully converted $recordsDescription to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = properties.getString("spark.log.table.name")
       val partitionColumn: String = properties.getString("spark.log.table.partitionColumn")
-      super.saveAsOrInsertInto(jobRecordsDataFrame, targetTable, partitionColumn)
+      save(jobRecordsDataFrame, targetTable, partitionColumn)
     } match {
       case Success(_) => log.info(s"Successfully saved all of $recordsDescription")
       case Failure(exception) => log.warn(s"Caught exception while saving $recordsDescription. Stack trace: ", exception)
@@ -152,20 +154,32 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   }
 
   /**
-   * If given dataframe is not empty, save it to given table
+   * If given dataframe is not empty, save it to given table using given partitioning column
    * @param dataFrame [[DataFrame]]
    * @param fqTableName fully qualified (i.e. db.table) name of target table
    * @param partitionColumn partitioning column
    */
 
-  protected def saveAsOrInsertIntoIfNotEmpty(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Unit = {
+  protected def saveIfNotEmpty(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Unit = {
 
-    val dataFrameClass = classOf[DataFrame].getSimpleName
     if (dataFrame.isEmpty) {
-      log.warn(s"Given $dataFrameClass for target table $fqTableName is empty. Thus, no data will be written to it")
+      log.warn(s"Given ${classOf[DataFrame].getSimpleName} for target table $fqTableName is empty. Thus, no data will be written to it")
     } else {
-      val repartitionedDataFrame: DataFrame = dataFrame.withOptimizedRepartitioning(maxFileSizeInBytes)
-      super.saveAsOrInsertInto(repartitionedDataFrame, fqTableName, partitionColumn)
+      save(dataFrame.withOptimizedRepartitioning(maxFileSizeInBytes), fqTableName, partitionColumn)
     }
+  }
+
+  /**
+   * Save a dataframe to a Hive table using given partitioning column
+   * @param dataFrame [[DataFrame]] to be saved
+   * @param fqTargetTable fully qualified (i.e. db.table) name of target table
+   * @param partitionColumn partitioning column
+   */
+
+  protected def save(dataFrame: DataFrame, fqTargetTable: String, partitionColumn: String): Unit = {
+
+    val isNewTable: Boolean = saveAsOrInsertInto(dataFrame, fqTargetTable, partitionColumn)
+    val anyChangeToPartitions: Boolean = fs.modifyTablePermissions(sparkSession.getTableLocation(fqTargetTable), tablePermissions)
+    executeImpalaStatement(fqTargetTable, isNewTable || anyChangeToPartitions)
   }
 }

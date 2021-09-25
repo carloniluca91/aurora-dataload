@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public class Load {
 
@@ -15,7 +17,7 @@ public class Load {
     public Load(@JsonProperty(JsonField.PARTITION_INFO) PartitionInfo partitionInfo,
                 @JsonProperty(JsonField.TARGET) Target target) {
 
-        this.partitionInfo = partitionInfo;
-        this.target = target;
+        this.partitionInfo = Objects.requireNonNull(partitionInfo, JsonField.PARTITION_INFO);
+        this.target = Objects.requireNonNull(target, JsonField.TARGET);
     }
 }

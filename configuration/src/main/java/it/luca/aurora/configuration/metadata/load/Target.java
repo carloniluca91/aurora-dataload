@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public class Target {
 
@@ -15,7 +17,7 @@ public class Target {
     public Target(@JsonProperty(JsonField.TRUSTED) String trusted,
                   @JsonProperty(JsonField.ERROR) String error) {
 
-        this.trusted = trusted;
-        this.error = error;
+        this.trusted = Objects.requireNonNull(trusted, JsonField.TRUSTED);
+        this.error = Objects.requireNonNull(error, JsonField.ERROR);
     }
 }

@@ -56,7 +56,7 @@
     "load": {
       "partitionInfo": {
         "type": "FILE_NAME_REGEX",
-        "columnName": "${spark.partitionColumn.daily}",
+        "columnName": "${spark.output.partition.daily}",
         "configuration": {
           "regexGroup": 1,
           "inputPattern": "yyyyMMdd",

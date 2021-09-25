@@ -11,7 +11,7 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class DataloadJobRecordTest
+class DataloadJobLogRecordTest
   extends AnyFlatSpec
     with should.Matchers
     with MockFactory {
@@ -31,11 +31,11 @@ class DataloadJobRecordTest
   private val filePath: Path = new Path("/file/status/path")
   private val yarnUiUrl = "yarnUiUrl"
 
-  s"A ${classOf[DataloadJobRecord].getSimpleName}" should
+  s"A ${classOf[DataloadJobLogRecord].getSimpleName}" should
     s"be correctly initialized" in {
 
     val exceptionOpt: Option[Throwable] = None
-    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, exceptionOpt)
+    val record = DataloadJobLogRecord(scWrapper, dataSource, yarnUiUrl, filePath, exceptionOpt)
     record.applicationId shouldEqual appId
     record.applicationName shouldEqual appName
     record.applicationStartTime shouldEqual startTimeTs
@@ -50,18 +50,18 @@ class DataloadJobRecordTest
   it should s"report exception class and message if a non-empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
 
     val throwable: IllegalArgumentException = new IllegalArgumentException("exceptionMsg")
-    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, Some(throwable))
+    val record = DataloadJobLogRecord(scWrapper, dataSource, yarnUiUrl, filePath, Some(throwable))
 
-    record.ingestionOperationCode shouldEqual DataloadJobRecord.KO
+    record.ingestionOperationCode shouldEqual DataloadJobLogRecord.KO
     record.exceptionClass shouldEqual Some(throwable.getClass.getName)
     record.exceptionMessage shouldEqual Some(throwable.getMessage)
   }
 
   it should s"not report anything if an empty ${classOf[Option[Throwable]].getSimpleName} is provided" in {
 
-    val record = DataloadJobRecord(scWrapper, dataSource, yarnUiUrl, filePath, None)
+    val record = DataloadJobLogRecord(scWrapper, dataSource, yarnUiUrl, filePath, None)
 
-    record.ingestionOperationCode shouldEqual DataloadJobRecord.OK
+    record.ingestionOperationCode shouldEqual DataloadJobLogRecord.OK
     record.exceptionClass shouldEqual None
     record.exceptionMessage shouldEqual None
   }
