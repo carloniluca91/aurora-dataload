@@ -4,7 +4,7 @@ import it.luca.aurora.configuration.metadata.load.{FileNameRegexInfo, PartitionI
 import it.luca.aurora.configuration.metadata.transform.Transform
 
 class Bancll11MetadataTest
-  extends DataSourceMetadataTest("BANCLL_11") {
+  extends DataSourceMetadataTest("BANCLL11") {
 
   override protected def testExtract(extract: Extract): Unit = {
 

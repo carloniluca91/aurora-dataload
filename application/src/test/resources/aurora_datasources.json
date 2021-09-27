@@ -1,6 +1,6 @@
 {
   "dataSources": {
-    "BANCLL_11": "metadata/bancll_11.json",
+    "BANCLL11": "metadata/bancll11.json",
     "OCS": "metadata/ocs.json"
   }
 }

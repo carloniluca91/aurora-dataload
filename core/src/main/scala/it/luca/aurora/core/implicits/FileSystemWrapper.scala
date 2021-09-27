@@ -56,7 +56,9 @@ class FileSystemWrapper(protected val fs: FileSystem)
       log.info(s"Successfully set permissions to $permission on location $tableLocationPath")
       true
     } else {
-      val rationale: String = if (!belongsToOwner(tableLocationStatus)) s"as it belongs to a different user (${tableLocationStatus.getOwner})" else ""
+      val rationale: String = if (!belongsToOwner(tableLocationStatus))
+        s"as it belongs to a different owner (${tableLocationStatus.getOwner})"
+      else s"as it belongs to given owner ($owner) but match $givenPermissions"
       log.info(s"No action to apply on root location of table $tableName ($tableLocation) $rationale")
       false
     }
@@ -67,7 +69,7 @@ class FileSystemWrapper(protected val fs: FileSystem)
     val anyActionOnTablePartitions: Boolean = if (matchingPartitions.nonEmpty) {
 
       val tablePartitionsString: String = matchingPartitions.map { p => s"  ${p.getPath.getName}" }.mkString("\n").concat("\n")
-      log.info(s"Found ${matchingPartitions.size} partition(s) for table $tableName belonging to $owner that do not match " +
+      log.info(s"Found ${matchingPartitions.size} partition(s) for table $tableName with owner $owner that do not match " +
         s"$givenPermissions.\n\n$tablePartitionsString")
       matchingPartitions.foreach { p =>
         fs.setPermission(p.getPath, permission)
@@ -75,7 +77,7 @@ class FileSystemWrapper(protected val fs: FileSystem)
       }
       true
     } else {
-      log.info(s"No action will be done on table partitions as they do not belong to owner $owner or already match $givenPermissions")
+      log.info(s"No action will be applied on table partitions of $tableName as they do not belong to owner $owner or already match $givenPermissions")
       false
     }
 

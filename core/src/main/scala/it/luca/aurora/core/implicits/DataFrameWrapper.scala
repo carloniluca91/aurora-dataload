@@ -41,7 +41,7 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
     // Pick the maximum between 1 (allowed minimum) and the estimated number
     val numberOfPartitions: Int = math.max(math.ceil(dataFrameSizeInBytes.toDouble / maxFileSizeInBytes.toDouble).toInt, 1)
     log.info(s"Repartitioning given ${classOf[DataFrame].getSimpleName} into $numberOfPartitions partition(s)")
-    persistedDataFrame.coalesce(numberOfPartitions)
+    persistedDataFrame.unpersist().coalesce(numberOfPartitions)
   }
 
   /**
@@ -53,11 +53,10 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
 
     // Add technical columns
     val now = LocalDateTime.now()
-    val nowAsTimestamp: Timestamp = Timestamp.valueOf(now)
     val sparkContext: SparkContext = dataFrame.sparkSession.sparkContext
 
     dataFrame
-      .withColumn("insert_ts", lit(nowAsTimestamp))
+      .withColumn("insert_ts", lit(Timestamp.valueOf(now)))
       .withColumn("insert_dt", lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
       .withColumn("application_id", lit(sparkContext.applicationId))
       .withColumn("application_name", lit(sparkContext.appName))

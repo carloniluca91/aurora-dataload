@@ -1,9 +1,9 @@
 {
   "id": "BANCLL11",
   "dataSourcePaths": {
-    "landing": "${datasources.data.root}/bancll_11/landing",
-    "success": "${datasources.data.root}/bancll_11/success",
-    "error": "${datasources.data.root}/bancll_11/failed"
+    "landing": "${datasources.data.root}/bancll11/landing",
+    "success": "${datasources.data.root}/bancll11/success",
+    "error": "${datasources.data.root}/bancll11/failed"
   },
   "etlConfiguration": {
     "extract": {
