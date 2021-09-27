@@ -28,6 +28,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     with Logging {
 
   protected final val fs: FileSystem = sparkSession.getFileSystem
+  protected final val hadoopUserName: String = properties.getString("hadoop.user.name")
   protected final val targetDirectoryPermissions: FsPermission = FsPermission.valueOf(properties.getString("hadoop.target.directory.permissions"))
   protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.permissions"))
   protected final val maxFileSizeInBytes: Int = properties.getInt("spark.output.file.maxSizeInBytes")
@@ -179,7 +180,8 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   protected def save(dataFrame: DataFrame, fqTargetTable: String, partitionColumn: String): Unit = {
 
     val isNewTable: Boolean = saveAsOrInsertInto(dataFrame, fqTargetTable, partitionColumn)
-    val anyChangeToPartitions: Boolean = fs.modifyTablePermissions(sparkSession.getTableLocation(fqTargetTable), tablePermissions)
+    val tableLocation: String = sparkSession.getTableLocation(fqTargetTable)
+    val anyChangeToPartitions: Boolean = fs.modifyTablePermissions(tableLocation, hadoopUserName, tablePermissions)
     executeImpalaStatement(fqTargetTable, isNewTable || anyChangeToPartitions)
   }
 }

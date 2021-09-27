@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public class DataSourcePaths {
 
@@ -16,8 +18,8 @@ public class DataSourcePaths {
                            @JsonProperty(JsonField.ERROR) String error,
                            @JsonProperty(JsonField.SUCCESS) String success) {
 
-        this.landing = landing;
-        this.error = error;
-        this.success = success;
+        this.landing = Objects.requireNonNull(landing, JsonField.LANDING);
+        this.error = Objects.requireNonNull(error, JsonField.ERROR);
+        this.success = Objects.requireNonNull(success, JsonField.SUCCESS);
     }
 }

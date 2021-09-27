@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public class DataSourceMetadata {
 
@@ -16,9 +18,9 @@ public class DataSourceMetadata {
                               @JsonProperty(JsonField.DATASOURCE_PATHS) DataSourcePaths dataSourcePaths,
                               @JsonProperty(JsonField.ETL_CONFIGURATION) EtlConfiguration etlConfiguration) {
 
-        this.id = id;
-        this.dataSourcePaths = dataSourcePaths;
-        this.etlConfiguration = etlConfiguration;
+        this.id = Objects.requireNonNull(id, JsonField.ID);
+        this.dataSourcePaths = Objects.requireNonNull(dataSourcePaths, JsonField.DATASOURCE_PATHS);
+        this.etlConfiguration = Objects.requireNonNull(etlConfiguration, JsonField.ETL_CONFIGURATION);
     }
 
     public String getFileNameRegex() {

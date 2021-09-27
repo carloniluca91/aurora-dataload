@@ -35,9 +35,7 @@ abstract class SparkJob(protected val sparkSession: SparkSession,
    * @return true if a new table was created, false otherwise
    */
 
-  protected def saveAsOrInsertInto(dataFrame: DataFrame,
-                                   fqTableName: String,
-                                   partitionColumn: String): Boolean = {
+  protected def saveAsOrInsertInto(dataFrame: DataFrame, fqTableName: String, partitionColumn: String): Boolean = {
 
     val saveMode = SaveMode.Append
     val dataFrameClass = classOf[DataFrame].getSimpleName

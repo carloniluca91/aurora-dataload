@@ -9,6 +9,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -26,8 +27,8 @@ public class Transform {
                      @JsonProperty(JsonField.DROP_DUPLICATES) List<String> dropDuplicates,
                      @JsonProperty(JsonField.DROP_COLUMNS) List<String> dropColumns) {
 
-        this.filters = filters;
-        this.transformations = transformations;
+        this.filters = Objects.requireNonNull(filters, JsonField.FILTERS);
+        this.transformations = Objects.requireNonNull(transformations, JsonField.TRANSFORMATIONS);
         this.dropDuplicates = dropDuplicates;
         this.dropColumns = dropColumns;
     }

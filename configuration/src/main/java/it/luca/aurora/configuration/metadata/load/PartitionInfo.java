@@ -17,8 +17,8 @@ import java.util.Objects;
 })
 public abstract class PartitionInfo {
 
-    public final static String COLUMN_EXPRESSION = "COLUMN_EXPRESSION";
-    public final static String FILE_NAME_REGEX = "FILE_NAME_REGEX";
+    public static final String COLUMN_EXPRESSION = "COLUMN_EXPRESSION";
+    public static final String FILE_NAME_REGEX = "FILE_NAME_REGEX";
 
     protected final String type;
     protected final String columnName;

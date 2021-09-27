@@ -24,7 +24,7 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
     with should.Matchers
     with Logging {
 
-  protected final def isPresent[T](input: T): Boolean = Option(input).isDefined
+  protected def mkString[T](seq: Seq[T]): String = seq.map { x => s"  $x"}.mkString("\n").concat("\n")
 
   s"Metadata file for dataSource $dataSourceId" should
     s"be correctly deserialized as a ${classOf[DataSourceMetadata].getSimpleName} instance" in {
@@ -44,48 +44,34 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
       .getLines().mkString("\n")
       .withInterpolation(properties)
 
-    val dataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata])
-    isPresent(dataSourceMetadata.getId) shouldBe true
-    isPresent(dataSourceMetadata.getDataSourcePaths) shouldBe true
-    isPresent(dataSourceMetadata.getEtlConfiguration) shouldBe true
+    val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata])
 
     // Test extract
     val extract: Extract = dataSourceMetadata.getEtlConfiguration.getExtract
-    isPresent(extract) shouldBe true
     testExtract(extract)
 
     // Test transform
     val transform: Transform = dataSourceMetadata.getEtlConfiguration.getTransform
-    isPresent(transform) shouldBe true
     transform.getFilters.isEmpty shouldBe false
     val failingFilters: Seq[String] = transform.getFilters.filter {
       s => Try { SqlExpressionParser.parse(s) }.isFailure
     }
 
     // Filters
-    if (failingFilters.nonEmpty) {
-      log.warn(s"Failing filters: ${failingFilters.mkString("|")}")
-    }
+    if (failingFilters.nonEmpty) log.warn(s"Failing filters: ${mkString(failingFilters)}")
     failingFilters.isEmpty shouldBe true
 
     // Transformations
-    val failingTransformations: Seq[String] = transform.getTransformations
-      .filter { s =>
-        Try { SqlExpressionParser.parse(s) }.isFailure
-      }
-
-    if (failingTransformations.nonEmpty) {
-      log.warn(s"Failing transformations: ${failingTransformations.mkString("|")}")
+    val failingTransformations: Seq[String] = transform.getTransformations.filter {
+      s => Try { SqlExpressionParser.parse(s) }.isFailure
     }
-    failingTransformations.isEmpty shouldBe true
 
+    if (failingTransformations.nonEmpty) log.warn(s"Failing transformations: ${mkString(failingTransformations)}")
+    failingTransformations.isEmpty shouldBe true
     testTransform(transform)
 
     // Test load
     val load: Load = dataSourceMetadata.getEtlConfiguration.getLoad
-    isPresent(load) shouldBe true
-    isPresent(load.getTarget) shouldBe true
-    isPresent(load.getPartitionInfo) shouldBe true
     testPartitionInfo(load.getPartitionInfo)
   }
 

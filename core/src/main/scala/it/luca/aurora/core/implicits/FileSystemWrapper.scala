@@ -41,30 +41,35 @@ class FileSystemWrapper(protected val fs: FileSystem)
    * @return true if an action was necessary, false otherwise
    */
 
-  def modifyTablePermissions(tableLocation: String, permission: FsPermission): Boolean = {
+  def modifyTablePermissions(tableLocation: String, owner: String, permission: FsPermission): Boolean = {
 
     // Table location
     val tableLocationPath = new Path(tableLocation)
+    val tableLocationStatus: FileStatus = fs.getFileStatus(tableLocationPath)
+    val belongsToOwner: FileStatus => Boolean = f => f.getOwner.equalsIgnoreCase(owner)
+    val isDirBelongingToOwnerWithDifferentPermissions: FileStatus => Boolean =
+      f => f.isDirectory && belongsToOwner(f) && !f.getPermission.equals(permission)
     val (tableName, givenPermissions): (String, String) = (tableLocationPath.getName, s"given permissions ($permission)")
-    val anyActionOnTableLocation: Boolean = if (!fs.getFileStatus(tableLocationPath).getPermission.equals(permission)) {
+    val anyActionOnTableLocation: Boolean = if (isDirBelongingToOwnerWithDifferentPermissions(tableLocationStatus)) {
 
       log.info(s"Location of table $tableName ($tableLocation) does not match $givenPermissions")
       fs.setPermission(tableLocationPath, permission)
       log.info(s"Successfully set permissions to $permission on location $tableLocationPath")
       true
     } else {
-      log.info(s"No action to apply on root location of table $tableName ($tableLocation)")
+      val rationale: String = if (!belongsToOwner(tableLocationStatus)) s"as it belongs to a different user (${tableLocationStatus.getOwner})" else ""
+      log.info(s"No action to apply on root location of table $tableName ($tableLocation) $rationale")
       false
     }
 
     // Table partitions
     log.info(s"Checking status of partitions of table $tableName")
-    val nonMatchingPartitions: Seq[FileStatus] = fs.listStatus(tableLocationPath).filter {
-      p => p.isDirectory && !p.getPermission.equals(permission) }
+    val nonMatchingPartitions: Seq[FileStatus] = fs.listStatus(tableLocationPath).filter { isDirBelongingToOwnerWithDifferentPermissions }
     val anyActionOnTablePartitions: Boolean = if (nonMatchingPartitions.nonEmpty) {
 
       val tablePartitionsString: String = nonMatchingPartitions.map { p => s"  ${p.getPath.getName}" }.mkString("\n").concat("\n")
-      log.info(s"Found ${nonMatchingPartitions.size} partition(s) for table $tableName that do not match $givenPermissions.\n\n$tablePartitionsString")
+      log.info(s"Found ${nonMatchingPartitions.size} partition(s) for table $tableName belonging to $owner that do not match " +
+        s"$givenPermissions.\n\n$tablePartitionsString")
       nonMatchingPartitions.foreach { p =>
         fs.setPermission(p.getPath, permission)
         log.info(s"Successfully set permissions to $permission for partition ${p.getPath.getName}")
