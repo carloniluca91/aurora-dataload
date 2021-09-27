@@ -43,7 +43,6 @@ class FileSystemWrapper(protected val fs: FileSystem)
 
   def modifyTablePermissions(tableLocation: String, owner: String, permission: FsPermission): Boolean = {
 
-    // Table location
     val tableLocationPath = new Path(tableLocation)
     val tableLocationStatus: FileStatus = fs.getFileStatus(tableLocationPath)
     val belongsToOwner: FileStatus => Boolean = f => f.getOwner.equalsIgnoreCase(owner)
@@ -64,19 +63,19 @@ class FileSystemWrapper(protected val fs: FileSystem)
 
     // Table partitions
     log.info(s"Checking status of partitions of table $tableName")
-    val nonMatchingPartitions: Seq[FileStatus] = fs.listStatus(tableLocationPath).filter { isDirBelongingToOwnerWithDifferentPermissions }
-    val anyActionOnTablePartitions: Boolean = if (nonMatchingPartitions.nonEmpty) {
+    val matchingPartitions: Seq[FileStatus] = fs.listStatus(tableLocationPath).filter { isDirBelongingToOwnerWithDifferentPermissions }
+    val anyActionOnTablePartitions: Boolean = if (matchingPartitions.nonEmpty) {
 
-      val tablePartitionsString: String = nonMatchingPartitions.map { p => s"  ${p.getPath.getName}" }.mkString("\n").concat("\n")
-      log.info(s"Found ${nonMatchingPartitions.size} partition(s) for table $tableName belonging to $owner that do not match " +
+      val tablePartitionsString: String = matchingPartitions.map { p => s"  ${p.getPath.getName}" }.mkString("\n").concat("\n")
+      log.info(s"Found ${matchingPartitions.size} partition(s) for table $tableName belonging to $owner that do not match " +
         s"$givenPermissions.\n\n$tablePartitionsString")
-      nonMatchingPartitions.foreach { p =>
+      matchingPartitions.foreach { p =>
         fs.setPermission(p.getPath, permission)
         log.info(s"Successfully set permissions to $permission for partition ${p.getPath.getName}")
       }
       true
     } else {
-      log.info(s"All partitions of table $tableName match $givenPermissions. No action is necessary")
+      log.info(s"No action will be done on table partitions as they do not belong to owner $owner or already match $givenPermissions")
       false
     }
 
