@@ -11,8 +11,9 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import java.util.Objects;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 @Getter
@@ -33,13 +34,32 @@ public abstract class Extract {
 
     public Extract(String type, String fileNameRegex) {
 
-        this.type = Objects.requireNonNull(type, JsonField.TYPE);
-        this.fileNameRegex = Objects.requireNonNull(fileNameRegex, JsonField.FILE_NAME_REGEX);
+        this.type = requireNonNull(type, JsonField.TYPE);
+        this.fileNameRegex = requireNonNull(fileNameRegex, JsonField.FILE_NAME_REGEX);
     }
+
+    /**
+     * Set up a {@link DataFrameReader} depending on represented class instance
+     * @param sparkSession {@link SparkSession}
+     * @return instance of {@link DataFrameReader}
+     */
 
     protected abstract DataFrameReader setUpReader(SparkSession sparkSession);
 
+    /**
+     * Define a function that, given an input {@link DataFrameReader} and string representing an HDFS path with data to be read, returns a {@link Dataset}
+     * @param reader instance of {@link DataFrameReader} (created using {@link Extract#setUpReader(SparkSession)}})
+     * @return {@link Function} that, if applied to a string, returns a {@link Dataset}
+     */
+
     protected abstract Function<String, Dataset<Row>> invokeReader(DataFrameReader reader);
+
+    /**
+     * Read data at given HDFS path using a {@link SparkSession}
+     * @param sparkSession {@link SparkSession} to be used for reading
+     * @param path HDFS path with data to be read
+     * @return {@link Dataset}
+     */
 
     public Dataset<Row> read(SparkSession sparkSession, Path path) {
 

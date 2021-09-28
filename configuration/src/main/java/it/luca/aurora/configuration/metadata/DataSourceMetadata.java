@@ -5,8 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+
+import static it.luca.aurora.configuration.metadata.Utils.getValueOrThrowException;
+import static java.util.Objects.requireNonNull;
 
 public class DataSourceMetadata {
 
@@ -27,9 +28,9 @@ public class DataSourceMetadata {
                               @JsonProperty(JsonField.DATASOURCE_PATHS) Map<String, String> dataSourcePaths,
                               @JsonProperty(JsonField.ETL_CONFIGURATION) EtlConfiguration etlConfiguration) {
 
-        this.id = Objects.requireNonNull(id, JsonField.ID);
-        this.dataSourcePaths = Objects.requireNonNull(dataSourcePaths, JsonField.DATASOURCE_PATHS);
-        this.etlConfiguration = Objects.requireNonNull(etlConfiguration, JsonField.ETL_CONFIGURATION);
+        this.id = requireNonNull(id, JsonField.ID);
+        this.dataSourcePaths = requireNonNull(dataSourcePaths, JsonField.DATASOURCE_PATHS);
+        this.etlConfiguration = requireNonNull(etlConfiguration, JsonField.ETL_CONFIGURATION);
     }
 
     public String getFileNameRegex() {
@@ -38,28 +39,12 @@ public class DataSourceMetadata {
     }
 
     /**
-     * Retrieve value of given key or throws exception
-     * @param key input key
-     * @return value of given key
-     * @throws NoSuchElementException if given key is not present
-     */
-
-    protected String getKeyOrThrowException(String key) throws NoSuchElementException {
-
-        if (dataSourcePaths.containsKey(key)) {
-            return dataSourcePaths.get(key);
-        } else {
-            throw new NoSuchElementException(String.format("Key '%s' not found in %s map", key, JsonField.DATASOURCE_PATHS));
-        }
-    }
-
-    /**
      * Get HDFS path of directory where to find input files
      * @return HDFS path of directory where to find input files
      */
 
     public String getLandingPath() {
-        return getKeyOrThrowException(LANDING);
+        return getValueOrThrowException(dataSourcePaths, LANDING);
     }
 
     /**
@@ -68,7 +53,7 @@ public class DataSourceMetadata {
      */
 
     public String getSuccessPath() {
-        return getKeyOrThrowException(SUCCESS);
+        return getValueOrThrowException(dataSourcePaths, SUCCESS);
     }
 
     /**
@@ -77,6 +62,6 @@ public class DataSourceMetadata {
      */
 
     public String getFailedPath() {
-        return getKeyOrThrowException(FAILED);
+        return getValueOrThrowException(dataSourcePaths, FAILED);
     }
 }

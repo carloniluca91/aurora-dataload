@@ -10,7 +10,8 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 @Getter
@@ -23,7 +24,7 @@ public class CsvExtractConfiguration {
     public CsvExtractConfiguration(@JsonProperty(JsonField.OPTIONS) Map<String, String> options,
                                    @JsonProperty(JsonField.SCHEMA) List<DataSourceColumn> schema) {
 
-        this.options = Objects.requireNonNull(options, JsonField.OPTIONS);
+        this.options = requireNonNull(options, JsonField.OPTIONS);
         this.schema = schema;
     }
 

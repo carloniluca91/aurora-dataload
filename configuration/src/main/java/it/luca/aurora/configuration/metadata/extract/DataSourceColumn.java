@@ -9,7 +9,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 @Getter
 public class DataSourceColumn {
@@ -21,9 +21,9 @@ public class DataSourceColumn {
     public DataSourceColumn(@JsonProperty(JsonField.NAME) String name,
                             @JsonProperty(JsonField.TYPE) String type) {
 
-        this.name = Objects.requireNonNull(name, JsonField.NAME);
+        this.name = requireNonNull(name, JsonField.NAME);
         DataType matchedDataType;
-        switch (Objects.requireNonNull(type, JsonField.TYPE)) {
+        switch (requireNonNull(type, JsonField.TYPE)) {
 
             case "string": matchedDataType = DataTypes.StringType; break;
             case "int": matchedDataType = DataTypes.IntegerType; break;

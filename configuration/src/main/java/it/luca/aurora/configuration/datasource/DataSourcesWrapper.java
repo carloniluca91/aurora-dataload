@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class DataSourcesWrapper {
 
@@ -15,7 +16,7 @@ public class DataSourcesWrapper {
     @JsonCreator
     public DataSourcesWrapper(@JsonProperty(DATASOURCES) Map<String, String> dataSources) {
 
-        this.dataSources = Objects.requireNonNull(dataSources, DATASOURCES);
+        this.dataSources = requireNonNull(dataSources, DATASOURCES);
     }
 
     /**

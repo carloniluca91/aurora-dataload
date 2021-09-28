@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 @Getter
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
@@ -25,8 +25,8 @@ public abstract class PartitionInfo {
 
     public PartitionInfo(String type, String columnName) {
 
-        this.type = Objects.requireNonNull(type, JsonField.TYPE);
-        this.columnName = Objects.requireNonNull(columnName, JsonField.COLUMN_NAME);
+        this.type = requireNonNull(type, JsonField.TYPE);
+        this.columnName = requireNonNull(columnName, JsonField.COLUMN_NAME);
     }
 
 }

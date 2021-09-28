@@ -119,16 +119,15 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
 
       // Write data
-      val (trustedTable, errorTable): (String, String) = (load.getTarget.getTrusted, load.getTarget.getError)
-      saveIfNotEmpty(finalTrustedDf, trustedTable, partitionColumnName)
-      saveIfNotEmpty(errorDf, errorTable, partitionColumnName)
+      val (trustedTableName, errorTableName): (String, String) = (load.getTrustedTableName, load.getErrorTableName)
+      saveIfNotEmpty(finalTrustedDf, trustedTableName, partitionColumnName)
+      saveIfNotEmpty(errorDf, errorTableName, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
     }
   }
 
   /**
    * Save log records produced by the ingestion job
-   *
    * @param records [[Seq]] of [[DataloadJobLogRecord]]
    */
 

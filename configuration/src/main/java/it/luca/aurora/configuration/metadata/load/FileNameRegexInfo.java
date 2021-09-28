@@ -8,9 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.Path;
 
 import java.time.LocalDate;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 @Slf4j
 @Getter
@@ -24,7 +25,7 @@ public class FileNameRegexInfo extends PartitionInfo {
                              @JsonProperty(JsonField.CONFIGURATION) FileNameRegexConfiguration configuration) {
 
         super(type, columnName);
-        this.configuration = Objects.requireNonNull(configuration, JsonField.CONFIGURATION);
+        this.configuration = requireNonNull(configuration, JsonField.CONFIGURATION);
     }
 
     /**

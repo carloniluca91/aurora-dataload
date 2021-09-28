@@ -7,7 +7,7 @@ import it.luca.aurora.configuration.metadata.load.Load;
 import it.luca.aurora.configuration.metadata.transform.Transform;
 import lombok.Getter;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 @Getter
 public class EtlConfiguration {
@@ -21,8 +21,8 @@ public class EtlConfiguration {
                             @JsonProperty(JsonField.TRANSFORM) Transform transform,
                             @JsonProperty(JsonField.LOAD) Load load) {
 
-        this.extract = Objects.requireNonNull(extract, JsonField.EXTRACT);
+        this.extract = requireNonNull(extract, JsonField.EXTRACT);
         this.transform = transform;
-        this.load = Objects.requireNonNull(load, JsonField.LOAD);
+        this.load = requireNonNull(load, JsonField.LOAD);
     }
 }

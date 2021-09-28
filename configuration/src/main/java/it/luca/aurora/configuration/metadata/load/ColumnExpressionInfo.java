@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import it.luca.aurora.configuration.metadata.JsonField;
 import lombok.Getter;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 @Getter
 public class ColumnExpressionInfo extends PartitionInfo {
@@ -18,6 +18,6 @@ public class ColumnExpressionInfo extends PartitionInfo {
                                 @JsonProperty(JsonField.COLUMN_EXPRESSION) String columnExpression) {
 
         super(type, columnName);
-        this.columnExpression = Objects.requireNonNull(columnExpression, JsonField.COLUMN_EXPRESSION);
+        this.columnExpression = requireNonNull(columnExpression, JsonField.COLUMN_EXPRESSION);
     }
 }
