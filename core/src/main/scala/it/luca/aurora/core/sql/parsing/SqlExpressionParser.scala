@@ -183,6 +183,7 @@ object SqlExpressionParser
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.MatchesRegex => MatchesRegex(function)
       case FunctionName.NeitherNullOrBlank => NeitherNullOrBlank(function)
+      case FunctionName.RegexReplace => RegexReplace(function)
       case FunctionName.Substring => Substring(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
       case FunctionName.LeftTrim | FunctionName.RightTrim | FunctionName.Trim => LeftOrRightOrBothTrim(function)

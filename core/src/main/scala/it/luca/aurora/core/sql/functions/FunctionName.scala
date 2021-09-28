@@ -15,6 +15,7 @@ object FunctionName extends Enumeration {
   val MatchesRegex = "matches_regex"
   val MatchesTimestampFormat = "matches_timestamp_format"
   val NeitherNullOrBlank = "neither_null_or_blank"
+  val RegexReplace = "regex_replace"
   val RightPad = "rpad"
   val RightTrim = "rtrim"
   val Substring = "substring"

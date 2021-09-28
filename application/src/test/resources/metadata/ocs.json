@@ -3,7 +3,7 @@
   "dataSourcePaths": {
     "landing": "${datasources.data.root}/ocs/landing",
     "success": "${datasources.data.root}/ocs/success",
-    "error": "${datasources.data.root}/ocs/failed"
+    "failed": "${datasources.data.root}/ocs/failed"
   },
   "etlConfiguration": {
     "extract": {

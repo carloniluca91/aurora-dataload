@@ -1,10 +1,9 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
-import it.luca.aurora.app.utils.loadProperties
+import it.luca.aurora.app.utils.{loadProperties, replaceTokensWithProperties}
 import it.luca.aurora.configuration.ObjectDeserializer.{deserializeFile, deserializeString}
 import it.luca.aurora.configuration.datasource.{DataSource, DataSourcesWrapper}
-import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
@@ -16,7 +15,7 @@ import java.io.File
 import java.sql.{Connection, DriverManager, SQLException}
 import scala.util.{Failure, Success, Try}
 
-class DataloadJobRunner
+object DataloadJobRunner
   extends Logging {
 
   /**
@@ -32,23 +31,23 @@ class DataloadJobRunner
 
       // Deserialize both .properties and dataSources .json file
       val properties: PropertiesConfiguration = loadProperties(propertiesFileName)
-      val impalaJDBCConnection: Connection = initImpalaJDBCConnection(properties)
       val wrapper: DataSourcesWrapper = deserializeFile(new File(cliArguments.dataSourcesFileName), classOf[DataSourcesWrapper])
       val dataSource: DataSource = wrapper.getDataSourceWithId(dataSourceId).withInterpolation(properties)
 
       // Read metadata file as a single String, interpolate it and deserialize it as Java object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
-      val jsonString: String = fs.readFileAsString(dataSource.getMetadataFilePath).withInterpolation(properties)
+      val jsonString: String = replaceTokensWithProperties(fs.readFileAsString(dataSource.getMetadataFilePath), properties)
       log.info(s"Successfully interpolated content of file ${dataSource.getMetadataFilePath}")
       val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata])
 
       // Check files within dataSource's input folder
-      val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getDataSourcePaths.getLanding, dataSourceMetadata.getFileNameRegex)
-      val validInputFiles: Seq[FileStatus] = fs.getListOfMatchingFiles(new Path(landingPath), fileNameRegex.r)
+      val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getLandingPath, dataSourceMetadata.getFileNameRegex)
+      val validInputFiles: Seq[FileStatus] = fs.getMatchingFiles(new Path(landingPath), fileNameRegex.r)
       if (validInputFiles.isEmpty) {
         log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
       } else {
+        val impalaJDBCConnection: Connection = initImpalaJDBCConnection(properties)
         new DataloadJob(sparkSession, impalaJDBCConnection, properties, dataSource, dataSourceMetadata)
           .processFiles(validInputFiles)
       }
@@ -63,7 +62,7 @@ class DataloadJobRunner
    * @return instance of [[SparkSession]]
    */
 
-  private def initSparkSession(): SparkSession = {
+  protected def initSparkSession(): SparkSession = {
 
     val sparkSession = SparkSession.builder
       .enableHiveSupport
@@ -85,7 +84,7 @@ class DataloadJobRunner
 
   @throws[ClassNotFoundException]
   @throws[SQLException]
-  private def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
+  protected def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
 
     val driverClassName: String = properties.getString("impala.jdbc.driverClass")
     val impalaJdbcUrl: String = properties.getString("impala.jdbc.url")

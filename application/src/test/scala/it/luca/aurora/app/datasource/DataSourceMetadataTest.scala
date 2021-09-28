@@ -1,9 +1,8 @@
 package it.luca.aurora.app.datasource
 
-import it.luca.aurora.app.utils.loadProperties
+import it.luca.aurora.app.utils.{loadProperties, replaceTokensWithProperties}
 import it.luca.aurora.configuration.ObjectDeserializer.{deserializeStream, deserializeString}
 import it.luca.aurora.configuration.datasource.{DataSource, DataSourcesWrapper}
-import it.luca.aurora.configuration.implicits._
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{Load, PartitionInfo}
@@ -40,9 +39,9 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
       .withInterpolation(properties)
 
     // Interpolate metadata .json string with application .properties and deserialize as Java object
-    val metadataJsonString: String = Source.fromInputStream(toStream(dataSource.getMetadataFilePath))
-      .getLines().mkString("\n")
-      .withInterpolation(properties)
+    val metadataJsonString: String = replaceTokensWithProperties(Source
+      .fromInputStream(toStream(dataSource.getMetadataFilePath))
+      .getLines().mkString("\n"), properties)
 
     val dataSourceMetadata: DataSourceMetadata = deserializeString(metadataJsonString, classOf[DataSourceMetadata])
 

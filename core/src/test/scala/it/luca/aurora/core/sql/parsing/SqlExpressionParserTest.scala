@@ -192,6 +192,18 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
+  it should s"parse a ${classOf[RegexReplace].getSimpleName} function" in {
+
+    val (pattern, replacement): (String, String) = ("\\.", "")
+    val expression = s"${FunctionName.RegexReplace}(${SqlExpressionTest.firstColumnName}, '$pattern', '$replacement')"
+    val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
+      override protected def computeExpectedValue(input: String): String = input.replaceAll(pattern, replacement)
+    }
+
+    val inputSamples: Seq[String] = "1" :: "2.00" :: "3.000.000" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
   it should s"parse a ${classOf[Substring].getSimpleName} function" in {
 
     val (pos, len): (Int, Int) = (1, 2)

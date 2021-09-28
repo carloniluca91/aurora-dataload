@@ -28,4 +28,4 @@ Some details
 
 * written in Scala `2.11.12`
 * developed, tested and deployed on a `CDH 6.3.2` environment (`Spark 2.4.0`)
-* Spark application submitted by means of a `bash` script (originally scheduled using Control-M) within homonymous folder of project's root
+* Spark application is submitted by means of a `bash` script (originally scheduled using Control-M) which can be found within `bash` folder at project's root

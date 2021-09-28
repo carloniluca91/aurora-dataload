@@ -13,25 +13,25 @@ class FileSystemWrapper(protected val fs: FileSystem)
   /**
    * Return list of [[FileStatus]] related to files within given directory path whose name matches given regex
    * @param dirPath [[Path]] of directory to check
-   * @param fileNameRegex [[Regex]] to be matched by valid files
+   * @param fileNameRegex [[Regex]] to be matched by a valid file's name
    * @return list of [[FileStatus]]
    */
 
-  def getListOfMatchingFiles(dirPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
+  def getMatchingFiles(dirPath: Path, fileNameRegex: Regex): Seq[FileStatus] = {
 
-    val fileStatuses: Seq[FileStatus] = fs.listStatus(dirPath)
+    val entitiesWithinDirPath: Seq[FileStatus] = fs.listStatus(dirPath)
     val isValidInputFile: FileStatus => Boolean = f => f.isFile && fileNameRegex.findFirstMatchIn(f.getPath.getName).isDefined
-    val invalidInputPaths: Seq[FileStatus] = fileStatuses.filterNot { isValidInputFile }
-    if (invalidInputPaths.nonEmpty) {
+    val invalidEntities: Seq[FileStatus] = entitiesWithinDirPath.filterNot { isValidInputFile }
+    if (invalidEntities.nonEmpty) {
 
       // Log name of invalid files or directories
-      val fileOrDirectory: FileStatus => String = x => if (x.isDirectory) "directory" else "file"
-      val invalidInputPathsStr = s"${invalidInputPaths.map { x => s"  Name: ${x.getPath.getName} (${fileOrDirectory(x)}})" }
+      val entityType: FileStatus => String = f => if (f.isDirectory) "directory" else "file"
+      val invalidEntitiesStr = s"${invalidEntities.map { e => s"  Name: ${e.getPath.getName} (${entityType(e)}})" }
         .mkString("\n")}".concat("\n")
-      log.warn(s"Found ${invalidInputPaths.size} invalid file(s) (or directories) at path $dirPath.\n$invalidInputPathsStr")
+      log.warn(s"Found ${invalidEntities.size} invalid file(s) (or directories) at path $dirPath.\n$invalidEntitiesStr")
     }
 
-    fileStatuses.filter { isValidInputFile }
+    entitiesWithinDirPath.filter { isValidInputFile }
   }
 
   /**
@@ -46,8 +46,7 @@ class FileSystemWrapper(protected val fs: FileSystem)
     val tableLocationPath = new Path(tableLocation)
     val tableLocationStatus: FileStatus = fs.getFileStatus(tableLocationPath)
     val belongsToOwner: FileStatus => Boolean = f => f.getOwner.equalsIgnoreCase(owner)
-    val isDirBelongingToOwnerWithDifferentPermissions: FileStatus => Boolean =
-      f => f.isDirectory && belongsToOwner(f) && !f.getPermission.equals(permission)
+    val isDirBelongingToOwnerWithDifferentPermissions: FileStatus => Boolean = f => f.isDirectory && belongsToOwner(f) && !f.getPermission.equals(permission)
     val (tableName, givenPermissions): (String, String) = (tableLocationPath.getName, s"given permissions ($permission)")
     val anyActionOnTableLocation: Boolean = if (isDirBelongingToOwnerWithDifferentPermissions(tableLocationStatus)) {
 
