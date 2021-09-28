@@ -2,7 +2,6 @@ package it.luca.aurora.app.job
 
 import it.luca.aurora.app.logging.DataloadJobLogRecord
 import it.luca.aurora.configuration.datasource.DataSource
-import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
 import it.luca.aurora.configuration.metadata.transform.Transform
 import it.luca.aurora.configuration.metadata.{DataSourceMetadata, EtlConfiguration}
@@ -74,11 +73,11 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       val filePath: Path = fileStatus.getPath
       val etlConfiguration: EtlConfiguration = dataSourceMetadata.getEtlConfiguration
-      val (extract, transform, load): (Extract, Transform, Load) = (etlConfiguration.getExtract, etlConfiguration.getTransform, etlConfiguration.getLoad)
+      val (transform, load): (Transform, Load) = (etlConfiguration.getTransform, etlConfiguration.getLoad)
       log.info(s"Starting to ingest file ${filePath.getName}")
 
       // Read file
-      val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
+      val inputDataFrame: DataFrame = etlConfiguration.getExtract.read(sparkSession, filePath)
       val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
       log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
       val overallFilterCol: Column = filterStatementsAndCols.map { case (_, column) => column }.reduce(_ && _)
@@ -88,7 +87,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val partitionInfo: PartitionInfo = load.getPartitionInfo
       val partitionColumnName: String = partitionInfo.getColumnName
       val partitionCol: Column = partitionInfo match {
-        case f: FileNameRegexInfo => lit(f.getDateFromFileName(extract.getFileNameRegex, filePath))
+        case f: FileNameRegexInfo => lit(f.getDateFromFileName(dataSourceMetadata.getFileNameRegex, filePath))
         case c: ColumnExpressionInfo =>
           val column: Column = SqlExpressionParser.parse(c.getColumnExpression)
           log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnExpressionInfo].getSimpleName}")

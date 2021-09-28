@@ -21,8 +21,8 @@ import static java.util.Objects.requireNonNull;
         property = JsonField.TYPE,
         visible = true)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = CsvExtract.class, name = Extract.CSV),
-        @JsonSubTypes.Type(value = AvroExtract.class, name = Extract.AVRO)
+        @JsonSubTypes.Type(value = AvroExtract.class, name = Extract.AVRO),
+        @JsonSubTypes.Type(value = CsvExtract.class, name = Extract.CSV)
 })
 public abstract class Extract {
 

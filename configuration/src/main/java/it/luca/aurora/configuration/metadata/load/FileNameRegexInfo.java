@@ -44,7 +44,7 @@ public class FileNameRegexInfo extends PartitionInfo {
             String partitionValue = LocalDate
                     .parse(matcher.group(configuration.getRegexGroup()), configuration.getInputFormatter())
                     .format(configuration.getOutputFormatter());
-            log.info("Partitioning value for column {}: {}", columnName, partitionValue);
+            log.info("Partitioning value for column {} will be {}", columnName, partitionValue);
             return partitionValue;
         } else throw new FileNameRegexException(regex, filePath);
     }
