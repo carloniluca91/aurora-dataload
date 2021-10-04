@@ -2,9 +2,8 @@ package it.luca.aurora.core.implicits
 
 import it.luca.aurora.core.Logging
 import org.apache.hadoop.fs.Path
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
 import java.sql.Timestamp
@@ -53,15 +52,15 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
 
     // Add technical columns
     val now = LocalDateTime.now()
-    val sparkContext: SparkContext = dataFrame.sparkSession.sparkContext
+    val sparkSession: SparkSession = dataFrame.sparkSession
 
     dataFrame
       .withColumn("insert_ts", lit(Timestamp.valueOf(now)))
       .withColumn("insert_dt", lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
-      .withColumn("application_id", lit(sparkContext.applicationId))
-      .withColumn("application_name", lit(sparkContext.appName))
-      .withColumn("application_start_time", lit(sparkContext.startTimeAsTimestamp))
-      .withColumn("application_start_date", lit(sparkContext.startTimeAsString("yyyy-MM-dd")))
+      .withColumn("application_id", lit(sparkSession.applicationId))
+      .withColumn("application_name", lit(sparkSession.appName))
+      .withColumn("application_start_time", lit(sparkSession.startTimeAsTimestamp))
+      .withColumn("application_start_date", lit(sparkSession.startTimeAsString("yyyy-MM-dd")))
   }
 
   /**

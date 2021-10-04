@@ -183,6 +183,7 @@ object SqlExpressionParser
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)
       case FunctionName.MatchesRegex => MatchesRegex(function)
       case FunctionName.NeitherNullOrBlank => NeitherNullOrBlank(function)
+      case FunctionName.RegexExtract => RegexExtract(function)
       case FunctionName.RegexReplace => RegexReplace(function)
       case FunctionName.Substring => Substring(function)
       case FunctionName.ToDate | FunctionName.ToTimestamp => ToDateOrTimestamp(function)
@@ -207,7 +208,7 @@ object SqlExpressionParser
         }
 
         val inputColumns: Seq[Column] = inputColumnExpressions.map(parse)
-        log.info(s"Parsed all of ${inputColumnExpressions.size} input column(s) for ${m.getClass.getSimpleName} function")
+        log.debug(s"Parsed all of ${inputColumnExpressions.size} input column(s) for ${m.getClass.getSimpleName} function")
         m.transform(inputColumns: _*)
     }
   }

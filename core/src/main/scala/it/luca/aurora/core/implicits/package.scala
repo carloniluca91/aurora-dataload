@@ -11,6 +11,4 @@ package object implicits {
   implicit def toFileSystemWrapper(fs: FileSystem): FileSystemWrapper = new FileSystemWrapper(fs)
 
   implicit def toSparkSessionWrapper(sparkSession: SparkSession): SparkSessionWrapper = new SparkSessionWrapper(sparkSession)
-
-  implicit def toSparkContextWrapper(sc: SparkContext): SparkContextWrapper = new SparkContextWrapper(sc)
 }

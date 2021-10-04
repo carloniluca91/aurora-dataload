@@ -163,7 +163,7 @@ class SqlExpressionParserTest
           override protected def computeExpectedValue(input: String): Boolean = expectedF(input)
         }
 
-        val inputSamples: Seq[String] = sampleGeneratorF(pattern) :: sampleGeneratorF("dd/MM/yyyy") :: Nil
+        val inputSamples: Seq[String] = sampleGeneratorF(pattern) :: sampleGeneratorF("dd/MM/yyyy") :: null :: Nil
         functionTest.test(expression, inputSamples)
     }
   }
@@ -173,8 +173,7 @@ class SqlExpressionParserTest
     val regexStr = "^\\d+$"
     val expression = s"${FunctionName.MatchesRegex}(${SqlExpressionTest.firstColumnName}, '$regexStr')"
     val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
-      override protected def computeExpectedValue(input: String): Boolean = Option(input).isDefined &&
-        regexStr.r.findFirstMatchIn(input).isDefined
+      override protected def computeExpectedValue(input: String): Boolean = Option(input).exists(s => regexStr.r.findFirstMatchIn(s).isDefined)
     }
 
     val inputSamples: Seq[String] = null :: "hello" :: "1" :: "27" :: Nil
@@ -185,10 +184,23 @@ class SqlExpressionParserTest
 
     val expression = s"${FunctionName.NeitherNullOrBlank}(${SqlExpressionTest.firstColumnName})"
     val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
-      override protected def computeExpectedValue(input: String): Boolean = Option(input).isDefined && !StringUtils.isBlank(input)
+      override protected def computeExpectedValue(input: String): Boolean = Option(input).exists(s => !StringUtils.isBlank(s))
     }
 
     val inputSamples: Seq[String] = null :: "" :: "  " :: "hello" :: "  world" :: Nil
+    functionTest.test(expression, inputSamples)
+  }
+
+  it should s"parse a ${classOf[RegexExtract].getSimpleName} function" in {
+
+    val (pattern, groupIndex): (String, Int) = ("^\\w+(\\d+)$", 1)
+    val expression = s"${FunctionName.RegexExtract}(${SqlExpressionTest.firstColumnName}, '$pattern', $groupIndex)"
+    val functionTest: SqlExpressionTest[String, String] = new SqlExpressionTest[String, String] {
+      override protected def computeExpectedValue(input: String): String = pattern.r.findFirstMatchIn(input)
+        .map(_.group(1)).getOrElse("")
+    }
+
+    val inputSamples: Seq[String] = "ab01" :: "de02" :: "hello" :: Nil
     functionTest.test(expression, inputSamples)
   }
 

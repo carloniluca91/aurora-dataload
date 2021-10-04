@@ -55,7 +55,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
       val filePath: Path = inputFile.getPath
       fs.moveFileToDirectory(filePath, new Path(targetDirectoryPath), targetDirectoryPermissions)
-      DataloadJobLogRecord(sparkSession.sparkContext, dataSource, yarnUiUrl, filePath, exceptionOpt)
+      DataloadJobLogRecord(sparkSession, dataSource, yarnUiUrl, filePath, exceptionOpt)
     }
 
     writeJobLogRecords(dataloadJobLogRecords)

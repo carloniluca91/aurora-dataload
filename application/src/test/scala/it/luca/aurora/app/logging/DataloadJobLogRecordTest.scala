@@ -1,7 +1,7 @@
 package it.luca.aurora.app.logging
 
 import it.luca.aurora.configuration.datasource.DataSource
-import it.luca.aurora.core.implicits.SparkContextWrapper
+import it.luca.aurora.core.implicits.SparkSessionWrapper
 import org.apache.hadoop.fs.Path
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
@@ -21,7 +21,7 @@ class DataloadJobLogRecordTest
   private val startTimeTs = Timestamp.valueOf(now)
 
   // Mock SparkContext
-  private val scWrapper: SparkContextWrapper = stub[SparkContextWrapper]
+  private val scWrapper: SparkSessionWrapper = stub[SparkSessionWrapper]
   (scWrapper.applicationId _).when().returns(appId)
   (scWrapper.appName _).when().returns(appName)
   (scWrapper.startTimeAsTimestamp _).when().returns(startTimeTs)

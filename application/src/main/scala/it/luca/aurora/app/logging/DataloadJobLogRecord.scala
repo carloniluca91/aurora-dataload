@@ -32,7 +32,7 @@ object DataloadJobLogRecord {
   /**
    * Create an instance of [[DataloadJobLogRecord]]
    *
-   * @param sparkContext [[SparkContextWrapper]] of current Spark application
+   * @param ssWrapper [[SparkSessionWrapper]] of current Spark application
    * @param dataSource instance of [[DataSource]]
    * @param filePath [[Path]] of ingested file
    * @param yarnUiUrl Root Url of Yarn UI
@@ -40,17 +40,17 @@ object DataloadJobLogRecord {
    * @return instance of [[DataloadJobLogRecord]]
    */
 
-  def apply(sparkContext: SparkContextWrapper,
+  def apply(ssWrapper: SparkSessionWrapper,
             dataSource: DataSource,
             yarnUiUrl: String,
             filePath: Path,
             exceptionOpt: Option[Throwable]): DataloadJobLogRecord = {
 
-    val appId: String = sparkContext.applicationId
+    val appId: String = ssWrapper.applicationId
     DataloadJobLogRecord(applicationId = appId,
-      applicationName = sparkContext.appName,
-      applicationStartTime = sparkContext.startTimeAsTimestamp,
-      applicationStartDate = sparkContext.startTimeAsString("yyyy-MM-dd"),
+      applicationName = ssWrapper.appName,
+      applicationStartTime = ssWrapper.startTimeAsTimestamp,
+      applicationStartDate = ssWrapper.startTimeAsString("yyyy-MM-dd"),
       dataSourceId = dataSource.getId,
       metadataFilePath = dataSource.getMetadataFilePath,
       ingestedFile = filePath.toString,
@@ -58,6 +58,6 @@ object DataloadJobLogRecord {
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),
       exceptionMessage = exceptionOpt.map(x => x.getMessage),
       yarnApplicationUiUrl = s"$yarnUiUrl/$appId",
-      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${sparkContext.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log")
+      yarnApplicationLogCmd = s"yarn logs -applicationId $appId >> ${appId}_${ssWrapper.startTimeAsString("yyyy_MM_dd_HH_mm_ss")}.log")
   }
 }
