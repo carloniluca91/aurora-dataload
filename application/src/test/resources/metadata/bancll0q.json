@@ -36,7 +36,7 @@
       ],
       "transformations": [
         "cod_isti AS cd_istituto",
-        "CASE WHEN ist = 'I01' THEN 'Deutsche Bank' WHEN ist = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
+        "CASE WHEN cod_isti = 'I01' THEN 'Deutsche Bank' WHEN cod_isti = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
         "cod_isin AS cd_isin",
         "CASE WHEN MATCHES_REGEX(cod_isin, '^TIT(\\d+)$') THEN 'Titolo Italiano' WHEN MATCHES_REGEX(cod_isin, '^TEU(\\d+)$') THEN 'Titolo Europeo' ELSE 'Titolo Extra Europeo' END AS desc_isin",
         "REGEX_EXTRACT(cod_isin, '^T(IT|EU|EST)(\\d+)$', 2) AS cd_titolo_isin",
@@ -47,8 +47,8 @@
         "tipo_rec AS tp_record",
         "CAST(REGEX_REPLACE(perc_com, ',', '.') AS double) AS prc_voce_costo",
         "CAST(REGEX_REPLACE(perc_ret, ',', '.') AS double) AS prc_retrocessione",
-        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_01, '.', ''), ',', '.') AS double) AS imp_min",
-        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_02, '.', ''), ',', '.') AS double) AS imp_max"
+        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_01, '\\.', ''), ',', '.') AS double) AS imp_min",
+        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_02, '\\.', ''), ',', '.') AS double) AS imp_max"
       ]
     },
     "load": {

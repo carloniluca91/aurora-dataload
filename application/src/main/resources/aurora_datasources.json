@@ -1,5 +1,6 @@
 {
   "dataSources": {
+    "BANCLL0Q": "${datasources.metadata.root}/bancll0q.json",
     "BANCLL11": "${datasources.metadata.root}/bancll11.json",
     "OCS": "${datasources.metadata.root}/ocs.json"
   }
