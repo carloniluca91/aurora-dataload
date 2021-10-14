@@ -23,7 +23,9 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
     with should.Matchers
     with Logging {
 
-  protected def mkString[T](seq: Seq[T]): String = seq.map { x => s"  $x"}.mkString("\n").concat("\n")
+  protected def mkString[T](seq: Seq[T]): String = "\n\n"
+    .concat(seq.map { x => s"  $x"}.mkString("\n"))
+    .concat("\n")
 
   protected def shouldBeASuccess[T, R](instance: T, function: T => R): Unit = Try { function(instance) } shouldBe Success(_: R)
 
@@ -35,9 +37,9 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
 
     // Read .yaml
     val toStream: String => InputStream = s => this.getClass.getClassLoader.getResourceAsStream(s)
-    val applicationYaml = deserializeStream(toStream("aurora_datasources.json"), classOf[DataSourcesWrapper])
+    val dataSourcesWrapper = deserializeStream(toStream("aurora_datasources.json"), classOf[DataSourcesWrapper])
 
-    val dataSource: DataSource = applicationYaml.getDataSourceWithId(dataSourceId)
+    val dataSource: DataSource = dataSourcesWrapper.getDataSourceWithId(dataSourceId)
       .withInterpolation(properties)
 
     // Interpolate metadata .json string with application .properties and deserialize as Java object
