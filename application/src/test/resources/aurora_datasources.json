@@ -1,5 +1,6 @@
 {
   "dataSources": {
+    "AMEX": "metadata/amex.json",
     "BANCLL0Q": "metadata/bancll0q.json",
     "BANCLL11": "metadata/bancll11.json",
     "OCS": "metadata/ocs.json"

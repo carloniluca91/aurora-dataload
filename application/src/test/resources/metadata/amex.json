@@ -1,0 +1,68 @@
+{
+  "id": "AMEX",
+  "dataSourcePaths": {
+    "landing": "${datasources.data.root}/amex/landing",
+    "success": "${datasources.data.root}/amex/success",
+    "failed": "${datasources.data.root}/amex/failed"
+  },
+  "etlConfiguration": {
+    "extract": {
+      "type": "AVRO",
+      "fileNameRegex": "^amex_giornaliero_(\\d{8})\\.avro$"
+    },
+    "transform": {
+      "filters": [
+        "tipo_record IS NOT NULL AND tipo_record = '01'",
+        "progressivo_record IS NOT NULL",
+        "NEITHER_NULL_OR_BLANK(ndg_banca)",
+        "MATCHES_TIMESTAMP_FORMAT(data_inserimento_richiesta_carta, 'HH:mm dd/MM/yyyy')",
+        "MATCHES_TIMESTAMP_FORMAT(data_approvazione_richiesta_carta, 'HH:mm dd/MM/yyyy')",
+        "NEITHER_NULL_OR_BLANK(descrizione_prodotto) AND descrizione_prodotto IN ('Green', 'Light', 'Blue', 'Paf')",
+        "NEITHER_NULL_OR_BLANK(tipo_carta)",
+        "NEITHER_NULL_OR_BLANK(product_type_code)",
+        "(tipo_carta = 'BASE' AND product_type_code = 'BAS') OR (tipo_carta = 'CONTESTUALE' AND product_type_code = 'SOP') OR (tipo_carta = 'SUCCESSIVA' AND product_type_code = 'AOS')",
+        "totale_speso_mensile_carta_segno IS NOT NULL AND totale_speso_mensile_carta_segno IN (' ', '+')",
+        "totale_speso_mensile_carta_anno_segno IS NOT NULL AND totale_speso_mensile_carta_anno_segno IN (' ', '+')",
+        "quota_annua_primo_anno_mese_segno IS NOT NULL AND quota_annua_primo_anno_mese_segno IN (' ', '+')",
+        "quota_annua_primo_anno_anno_segno IS NOT NULL AND quota_annua_primo_anno_anno_segno IN (' ', '+')",
+        "NEITHER_NULL_OR_BLANK(lending_indicator) AND lending_indicator IN ('0', '1')",
+        "NEITHER_NULL_OR_BLANK(revolve_indicator) AND revolve_indicator IN ('0', '1')"
+      ],
+      "transformations": [
+        "tipo_record",
+        "progressivo_record AS richiesta_num_progr",
+        "LPAD(ndg_banca, 16, '0') AS ndg",
+        "TO_TIMESTAMP(data_inserimento_richiesta_carta, 'HH:mm dd/MM/yyyy') AS ts_inserimento",
+        "DATE_FORMAT(TO_TIMESTAMP(data_inserimento_richiesta_carta, 'HH:mm dd/MM/yyyy'), 'yyyy-MM-dd') AS dt_inserimento",
+        "TO_TIMESTAMP(data_approvazione_richiesta_carta, 'HH:mm dd/MM/yyyy') AS ts_approvazione",
+        "DATE_FORMAT(TO_TIMESTAMP(data_approvazione_richiesta_carta, 'HH:mm dd/MM/yyyy'), 'yyyy-MM-dd') AS dt_approvazione",
+        "descrizione_prodotto AS desc_prodotto_richiesta",
+        "tipo_carta",
+        "product_type_code AS cd_tipo_prodotto",
+        "CASE WHEN totale_speso_mensile_carta_segno = '' THEN 'P' ELSE 'N' END AS segno_speso_mensile_carta",
+        "CASE WHEN totale_speso_mensile_carta_anno_segno = '' THEN 'P' ELSE 'N' END AS segno_speso_mensile_carta_anno",
+        "CASE WHEN quota_annua_primo_anno_mese_segno = '' THEN 'P' ELSE 'N' END AS segno_quota_annua_primo_anno_mese",
+        "CASE WHEN quota_annua_primo_anno_anno_segno = '' THEN 'P' ELSE 'N' END AS segno_quota_annua_primo_anno_anno",
+        "'P - Positivo' AS desc_segno_p",
+        "'N - Negativo' AS desc_segno_n",
+        "CASE WHEN lending_indicator = '0' THEN false ELSE true END AS flag_lending",
+        "CASE WHEN revolve_indicator = '0' THEN false ELSE true END AS flag_revolve"
+      ]
+    },
+    "load": {
+      "partitionInfo": {
+        "type": "FILE_NAME_REGEX",
+        "columnName": "${spark.output.partition.daily}",
+        "configuration": {
+          "regexGroup": 1,
+          "inputPattern": "yyyyMMdd",
+          "outputPattern": "yyyy-MM-dd"
+        }
+      },
+      "target": {
+        "trusted": "${impala.db.name}.t_amex_daily_trd",
+        "error": "${impala.db.name}.t_amex_daily_err"
+      }
+    }
+  }
+}

@@ -59,19 +59,19 @@ object SqlExpressionParser
 
   protected def parsePartialMatchCase(input: String): Either[String, Column] = {
 
-    // Define a map holding regexes and related match-to-column conversion
+    // Define a seq holding regexes and related match-to-column conversions
     val specialCasesMap: Seq[(Regex, Regex.Match => Column)] = Seq(
-      ("^CAST\\((.+) AS (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2).toLowerCase)),
-      ("^(\\w+\\(?.+\\)?) AS (\\w+)$".r, m => parse(m.group(1)).as(m.group(2))),
-      ("^'(.+)' AS (\\w+)$".r, m => lit(m.group(1)).as(m.group(2))))
+      ("^cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2).toLowerCase)),
+      ("^(\\w+\\(?.+\\)?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(2))),
+      ("^'(.+)' as (\\w+)$".r, m => lit(m.group(1)).as(m.group(2))),
+      ("^(true|false)$".r, m => lit(m.group(1).toBoolean)))
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion
+    val lowerCaseInput: String = input.toLowerCase
     specialCasesMap.find {
-      case (regex, _) => regex.findFirstMatchIn(input).isDefined
+      case (regex, _) => regex.findFirstMatchIn(lowerCaseInput).isDefined
     } match {
-      case Some(tuple) =>
-        val (regex, matchToColumn): (Regex, Regex.Match => Column) = tuple
-        Right(matchToColumn(regex.findFirstMatchIn(input).get))
+      case Some((regex, matchToColumn)) => Right(matchToColumn(regex.findFirstMatchIn(lowerCaseInput).get))
       case None => Left(input)
     }
   }
