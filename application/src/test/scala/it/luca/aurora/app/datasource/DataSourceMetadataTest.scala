@@ -65,6 +65,7 @@ abstract class DataSourceMetadataTest(protected val dataSourceId: String)
     failingFilters shouldBe empty
 
     // Transformations
+    val transformations = transform.getTransformations.map(SqlExpressionParser.parse)
     val failingTransformations: Seq[String] = transform.getTransformations.filter { s => Try { SqlExpressionParser.parse(s) }.isFailure}
     if (failingTransformations.nonEmpty) log.warn(s"Failing transformations: ${mkString(failingTransformations)}")
     failingTransformations shouldBe empty

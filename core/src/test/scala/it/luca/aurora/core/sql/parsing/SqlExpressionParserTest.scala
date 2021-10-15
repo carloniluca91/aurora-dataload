@@ -100,6 +100,28 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
+  it should s"parse a ${classOf[DecodeFlag].getSimpleName} function" in {
+
+    val testSet: Map[String, (String => Boolean, Seq[String])] = Map(
+      s"${FunctionName.DecodeBinaryFlag}(${SqlExpressionTest.firstColumnName})" -> ( {
+        case "0" => false
+        case "1" => true
+      }, "0" :: "1" :: Nil),
+      s"${FunctionName.DecodeYNFlag}(${SqlExpressionTest.firstColumnName})" -> ( {
+        case "N" => false
+        case "Y" => true
+      }, "N" :: "Y" :: Nil))
+
+    testSet.foreach {
+      case (expression, (expectedValueComputation, inputSamples)) =>
+        val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
+          override protected def computeExpectedValue(input: String): Boolean = expectedValueComputation(input)
+        }
+
+        functionTest.test(expression, inputSamples)
+    }
+  }
+
   it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {
 
     val doubleSpace = "  "

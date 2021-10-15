@@ -177,7 +177,7 @@ object SqlExpressionParser
       case FunctionName.Concat => Concat(function)
       case FunctionName.ConcatWs => ConcatWs(function)
       case FunctionName.DateFormat => DateFormat(function)
-      case FunctionName.DecodeFlag => DecodeFlag(function)
+      case FunctionName.DecodeBinaryFlag | FunctionName.DecodeYNFlag => DecodeFlag(function)
       case FunctionName.IsFlag => IsFlag(function)
       case FunctionName.LeftPad | FunctionName.RightPad => LeftOrRightPad(function)
       case FunctionName.MatchesDateFormat | FunctionName.MatchesTimestampFormat => MatchesDateOrTimestampFormat(function)

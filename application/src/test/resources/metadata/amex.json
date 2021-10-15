@@ -45,8 +45,8 @@
         "CASE WHEN quota_annua_primo_anno_anno_segno = '' THEN 'P' ELSE 'N' END AS segno_quota_annua_primo_anno_anno",
         "'P - Positivo' AS desc_segno_p",
         "'N - Negativo' AS desc_segno_n",
-        "CASE WHEN lending_indicator = '0' THEN false ELSE true END AS flag_lending",
-        "CASE WHEN revolve_indicator = '0' THEN false ELSE true END AS flag_revolve"
+        "DECODE_BINARY_FLAG(lending_indicator) AS flag_lending",
+        "DECODE_BINARY_FLAG(revolve_indicator) AS flag_revolve"
       ]
     },
     "load": {
