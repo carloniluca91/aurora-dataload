@@ -61,17 +61,16 @@ object SqlExpressionParser
 
     // Define a seq holding regexes and related match-to-column conversions
     val specialCasesMap: Seq[(Regex, Regex.Match => Column)] = Seq(
-      ("^cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2).toLowerCase)),
-      ("^(\\w+\\(?.+\\)?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(2))),
-      ("^'(.+)' as (\\w+)$".r, m => lit(m.group(1)).as(m.group(2))),
-      ("^(true|false)$".r, m => lit(m.group(1).toBoolean)))
+      ("^(?i)cast\\((.+) as (\\w+)\\)$".r, m => parse(m.group(1)).cast(m.group(2).toLowerCase)),
+      ("^(?i)(\\w+\\(?.+\\)?) as (\\w+)$".r, m => parse(m.group(1)).as(m.group(2))),
+      ("^(?i)'(.+)' as (\\w+)$".r, m => lit(m.group(1)).as(m.group(2))),
+      ("^(?i)(true|false)$".r, m => lit(m.group(1).toBoolean)))
 
     // If one of the regexes matches with input string, exploit the related match-to-column conversion
-    val lowerCaseInput: String = input.toLowerCase
     specialCasesMap.find {
-      case (regex, _) => regex.findFirstMatchIn(lowerCaseInput).isDefined
+      case (regex, _) => regex.findFirstMatchIn(input).isDefined
     } match {
-      case Some((regex, matchToColumn)) => Right(matchToColumn(regex.findFirstMatchIn(lowerCaseInput).get))
+      case Some((regex, matchToColumn)) => Right(matchToColumn(regex.findFirstMatchIn(input).get))
       case None => Left(input)
     }
   }

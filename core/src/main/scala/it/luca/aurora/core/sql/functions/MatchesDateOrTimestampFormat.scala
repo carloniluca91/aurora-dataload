@@ -3,7 +3,7 @@ package it.luca.aurora.core.sql.functions
 import net.sf.jsqlparser.expression
 import net.sf.jsqlparser.expression.StringValue
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.functions.{to_date, to_timestamp}
+import org.apache.spark.sql.functions.{to_date, to_timestamp, when}
 
 case class MatchesDateOrTimestampFormat(override protected val function: expression.Function)
   extends SingleColumnFunction(function) {
@@ -16,6 +16,6 @@ case class MatchesDateOrTimestampFormat(override protected val function: express
       case FunctionName.MatchesTimestampFormat => to_timestamp(_, pattern)
     }
 
-    timeFunction(column).isNotNull
+    when(column.isNotNull, timeFunction(column).isNotNull).otherwise(false)
   }
 }
