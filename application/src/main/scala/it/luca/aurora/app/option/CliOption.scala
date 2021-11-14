@@ -1,19 +1,70 @@
 package it.luca.aurora.app.option
 
-object CliOption extends Enumeration {
+/**
+ * Basic option for parsing an argument
+ * @tparam A type of argument related to this option
+ * @tparam C type of class collecting parsed arguments
+ */
 
-  protected case class CliOptionVal(shortOption: Char,
-                                    longOption: String,
-                                    description: String) extends super.Val {
+sealed trait CliOption[A, C] {
 
-    override def toString(): String = s"-$shortOption, --$longOption ($description)"
-  }
+  def shortOption: Char
 
-  import scala.language.implicitConversions
+  def longOption: String
 
-  implicit def valueToEnumVal(x: Value): CliOptionVal = x.asInstanceOf[CliOptionVal]
+  def description: String
 
-  val PropertiesFile: CliOptionVal = CliOptionVal('p', "properties", "Name of .properties file for Spark application")
-  val DataSourcesFile: CliOptionVal = CliOptionVal('j', "json", "Name of .json file with available datasources")
-  val DataSourceId: CliOptionVal = CliOptionVal('d', "datasource", "Id of datasource for which data must be loaded")
+  def required: Boolean
+
+  protected[option] def optionalValidation: Option[A => Either[String, Unit]]
+
+  def action: (A, C) => C
+
+  override def toString: String = s"-$shortOption, --$longOption ($description)"
 }
+
+/**
+ * Option with required flag set to true
+ * @tparam A type of argument related to this option
+ * @tparam C type of class collecting parsed arguments
+ */
+
+sealed trait Required[A, C]
+  extends CliOption[A, C] {
+
+  override def required: Boolean = true
+}
+
+/**
+ * Option that defines a function for argument validation
+ * @tparam A type of argument related to this option
+ * @tparam C type of class collecting parsed arguments
+ */
+
+sealed trait WithValidation[A, C]
+  extends CliOption[A, C] {
+
+  override def optionalValidation: Option[A => Either[String, Unit]] = Some(validation)
+
+  def validation: A => Either[String, Unit]
+}
+
+/**
+ * Option that does not apply validation to related argument
+ * @tparam A type of argument related to this option
+ * @tparam C type of class collecting parsed arguments
+ */
+
+sealed trait WithoutValidation[A, C]
+  extends CliOption[A, C] {
+
+  override protected[option] def optionalValidation: Option[A => Either[String, Unit]] = None
+}
+
+trait RequiredWithoutValidation[A, C]
+  extends Required[A, C]
+    with WithoutValidation[A, C]
+
+trait RequiredWithValidation[A, C]
+  extends Required[A, C]
+    with WithValidation[A, C]

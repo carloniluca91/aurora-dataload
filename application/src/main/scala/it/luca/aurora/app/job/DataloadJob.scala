@@ -1,10 +1,10 @@
 package it.luca.aurora.app.job
 
-import it.luca.aurora.app.logging.DataloadJobLogRecord
 import it.luca.aurora.configuration.datasource.DataSource
-import it.luca.aurora.configuration.metadata.load.{ColumnExpressionInfo, FileNameRegexInfo, Load, PartitionInfo}
-import it.luca.aurora.configuration.metadata.transform.Transform
-import it.luca.aurora.configuration.metadata.{DataSourceMetadata, EtlConfiguration}
+import it.luca.aurora.configuration.metadata.DataSourceMetadata
+import it.luca.aurora.configuration.metadata.extract.Extract
+import it.luca.aurora.configuration.metadata.load.{Load, StagingPaths}
+import it.luca.aurora.configuration.metadata.transform.{ColumnPartitioning, FileNameRegexPartitioning, Transform}
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import it.luca.aurora.core.{Logging, SparkJob}
@@ -15,7 +15,6 @@ import org.apache.spark.sql.functions.{concat_ws, lit, when}
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 import java.sql.Connection
-import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 class DataloadJob(override protected val sparkSession: SparkSession,
@@ -45,12 +44,12 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     val dataloadJobLogRecords: Seq[DataloadJobLogRecord] = inputFiles.map { inputFile =>
 
       // Depending on job execution, set optional exception and target directory where processed file will be moved
+      val staginsPaths: StagingPaths = dataSourceMetadata.load.stagingPaths
       val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
-        case Success(_) => (None, dataSourceMetadata.getSuccessPath)
+        case Success(_) => (None, staginsPaths.success)
         case Failure(exception) =>
-
           log.error(s"Caught exception while ingesting file ${inputFile.getPath.getName}. Stack trace: ", exception)
-          (Some(exception), dataSourceMetadata.getFailedPath)
+          (Some(exception), staginsPaths.failed)
       }
 
       val filePath: Path = inputFile.getPath
@@ -72,25 +71,24 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     Try {
 
       val filePath: Path = fileStatus.getPath
-      val etlConfiguration: EtlConfiguration = dataSourceMetadata.getEtlConfiguration
-      val (transform, load): (Transform, Load) = (etlConfiguration.getTransform, etlConfiguration.getLoad)
+      val extract: Extract = dataSourceMetadata.extract
+      val (transform, load): (Transform, Load) = (dataSourceMetadata.transform, dataSourceMetadata.load)
       log.info(s"Starting to ingest file ${filePath.getName}")
 
       // Read file
-      val inputDataFrame: DataFrame = etlConfiguration.getExtract.read(sparkSession, filePath)
-      val filterStatementsAndCols: Seq[(String, Column)] = transform.getFilters.map { x => (x, SqlExpressionParser.parse(x)) }
+      val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
+      val filterStatementsAndCols: Seq[(String, Column)] = transform.filters.map { x => (x, SqlExpressionParser.parse(x)) }
       log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
       val overallFilterCol: Column = filterStatementsAndCols.map { case (_, column) => column }.reduce(_ && _)
       val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { case (string, column) => when(!column, string) }
 
       // Partitioning
-      val partitionInfo: PartitionInfo = load.getPartitionInfo
-      val partitionColumnName: String = partitionInfo.getColumnName
-      val partitionCol: Column = partitionInfo match {
-        case f: FileNameRegexInfo => lit(f.getDateFromFileName(dataSourceMetadata.getFileNameRegex, filePath))
-        case c: ColumnExpressionInfo =>
-          val column: Column = SqlExpressionParser.parse(c.getColumnExpression)
-          log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnExpressionInfo].getSimpleName}")
+      val partitionColumnName: String = transform.partitioning.columnName
+      val partitionCol: Column = transform.partitioning match {
+        case f: FileNameRegexPartitioning => lit(f.getDateFromFileName(extract.fileNameRegex.r, filePath.getName))
+        case c: ColumnPartitioning =>
+          val column: Column = SqlExpressionParser.parse(c.columnExpression)
+          log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnPartitioning].getSimpleName}")
           column
       }
 
@@ -104,7 +102,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
         .withColumn(partitionColumnName, partitionCol)
 
       // Valid records
-      val trustedDfColumns: Seq[Column] = transform.getTransformations.map { SqlExpressionParser.parse }
+      val trustedDfColumns: Seq[Column] = transform.transformations.map { SqlExpressionParser.parse }
       log.info(s"Successfully parsed all of ${trustedDfColumns.size} trasformation(s)")
       val nonFinalTrustedDf: DataFrame = inputDataFrame.filter(overallFilterCol)
         .select(trustedDfColumns: _*)
@@ -118,7 +116,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
 
       // Write data
-      val (trustedTableName, errorTableName): (String, String) = (load.getTrustedTableName, load.getErrorTableName)
+      val (trustedTableName, errorTableName): (String, String) = (load.stagingTables.trusted, load.stagingTables.error)
       saveIfNotEmpty(finalTrustedDf, trustedTableName, partitionColumnName)
       saveIfNotEmpty(errorDf, errorTableName, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")

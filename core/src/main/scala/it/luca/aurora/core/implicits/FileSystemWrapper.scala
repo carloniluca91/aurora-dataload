@@ -109,7 +109,7 @@ class FileSystemWrapper(protected val fs: FileSystem)
    * @return string representing content of given file
    */
 
-  def readFileAsString(path: String): String = {
+  def readHDFSFileAsString(path: String): String = {
 
     Source.fromInputStream(fs.open(new Path(path)))
       .getLines()

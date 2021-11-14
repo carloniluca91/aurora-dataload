@@ -1,26 +1,28 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.option.CliArguments
-import it.luca.aurora.app.utils.{loadProperties, replaceTokensWithProperties}
-import it.luca.aurora.configuration.ObjectDeserializer.{deserializeFile, deserializeString}
-import it.luca.aurora.configuration.datasource.{DataSource, DataSourcesWrapper}
+import it.luca.aurora.configuration.DataSourceWrapper
+import it.luca.aurora.configuration.JsonDeserializer.deserializeStringAs
+import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
+import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
+import it.luca.aurora.core.utils._
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
 import org.apache.spark.sql.SparkSession
 
-import java.io.File
 import java.sql.{Connection, DriverManager, SQLException}
+import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 object DataloadJobRunner
   extends Logging {
 
   /**
-   * Setup and run ingestion job for given arguments
-   * @param cliArguments instance of [[CliArguments]]
+   * Run ingestion job for given arguments
+   * @param cliArguments application's arguments
    */
 
   def run(cliArguments: CliArguments): Unit = {
@@ -29,20 +31,22 @@ object DataloadJobRunner
     val dataSourceId: String = cliArguments.dataSourceId
     Try {
 
-      // Deserialize both .properties and dataSources .json file
-      val properties: PropertiesConfiguration = loadProperties(propertiesFileName)
-      val wrapper: DataSourcesWrapper = deserializeFile(new File(cliArguments.dataSourcesFileName), classOf[DataSourcesWrapper])
-      val dataSource: DataSource = wrapper.getDataSourceWithId(dataSourceId).withInterpolation(properties)
+      // Read both .properties file and dataSources .json file. Interpolate the latter
+      val properties: PropertiesConfiguration = loadPropertiesFile(propertiesFileName)
+      val dataSourcesJsonFile: String = replaceTokensWithProperties(readLocalFileAsString(cliArguments.dataSourcesFileName), properties)
+      val dataSourceWrapper: DataSourceWrapper = deserializeStringAs(dataSourcesJsonFile, classOf[DataSourceWrapper])
+      val dataSource: DataSource = dataSourceWrapper.getDataSourceWithId(dataSourceId)
 
-      // Read metadata file as a single String, interpolate it and deserialize it as Java object
+      // Read metadata file from HDFS as a single String, interpolate it and deserialize it as Scala object
       val sparkSession: SparkSession = initSparkSession()
       val fs: FileSystem = sparkSession.getFileSystem
-      val jsonString: String = replaceTokensWithProperties(fs.readFileAsString(dataSource.getMetadataFilePath), properties)
-      log.info(s"Successfully interpolated content of file ${dataSource.getMetadataFilePath}")
-      val dataSourceMetadata: DataSourceMetadata = deserializeString(jsonString, classOf[DataSourceMetadata])
+      val metadataJsonString: String = replaceTokensWithProperties(fs.readHDFSFileAsString(dataSource.metadataFilePath), properties)
+      log.info(s"Successfully interpolated content of file ${dataSource.metadataFilePath}")
+      val dataSourceMetadata: DataSourceMetadata = deserializeStringAs(metadataJsonString, classOf[DataSourceMetadata])
 
       // Check files within dataSource's input folder
-      val (landingPath, fileNameRegex): (String, String) = (dataSourceMetadata.getLandingPath, dataSourceMetadata.getFileNameRegex)
+      val extract: Extract = dataSourceMetadata.extract
+      val (landingPath, fileNameRegex): (String, String) = (extract.landingPath, extract.fileNameRegex)
       val validInputFiles: Seq[FileStatus] = fs.getMatchingFiles(new Path(landingPath), fileNameRegex.r)
       if (validInputFiles.isEmpty) {
         log.warn(s"Found no input file(s) within path $landingPath matching regex $fileNameRegex. So, nothing will be ingested")
@@ -58,11 +62,26 @@ object DataloadJobRunner
   }
 
   /**
-   * Initialize [[SparkSession]]
+   * Read a local file as a single string
+   * @param fileName name of local file
+   * @return
+   */
+
+  def readLocalFileAsString(fileName: String): String = {
+
+    val source = Source.fromFile(fileName)
+    val output: String = source.mkString("")
+    source.close()
+    log.info(s"Successfully read file $fileName as a string")
+    output
+  }
+
+  /**
+   * Initialize a [[SparkSession]]
    * @return instance of [[SparkSession]]
    */
 
-  protected def initSparkSession(): SparkSession = {
+  def initSparkSession(): SparkSession = {
 
     val sparkSession = SparkSession.builder
       .enableHiveSupport
@@ -84,7 +103,7 @@ object DataloadJobRunner
 
   @throws[ClassNotFoundException]
   @throws[SQLException]
-  protected def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
+  def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
 
     val driverClassName: String = properties.getString("impala.jdbc.driverClass")
     val impalaJdbcUrl: String = properties.getString("impala.jdbc.url")
