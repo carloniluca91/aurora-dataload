@@ -1,3 +1,29 @@
+organization := "it.luca"
+name := "aurora-dataload"
+version := "0.1"
+ThisBuild / scalaVersion := "2.11.12"
+ThisBuild / resolvers += "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
+
+// Compiler option
+javacOptions ++= "-source" :: "1.8" :: "-target" :: "1.8" :: Nil
+scalacOptions ++= "-encoding" :: "UTF-8" :: "-target:jvm-1.8" :: "-feature" :: "-language:implicitConversions" :: Nil
+
+// Exclude all resources related to extensions to exclude
+lazy val extensionsToExclude: Seq[String] = "properties" :: "xml" :: "yaml" :: Nil
+(Compile / unmanagedResources) := (Compile / unmanagedResources).value
+  .filterNot(x => extensionsToExclude.map {
+    extension => x.getName.endsWith(s".$extension")
+  }.reduce(_ || _))
+
+// Artifact creation
+assembly / assemblyOption := (assembly / assemblyOption).value.withIncludeScala(false)
+assembly / assemblyJarName := s"${name.value}-${version.value}.jar"
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", _*) => MergeStrategy.discard
+  case x =>
+    val oldStrategy = (assembly / assemblyMergeStrategy).value
+    oldStrategy(x) }
+
 // Dependencies versions
 val sparkVersion = "2.4.0-cdh6.3.2"
 val scalaTestVersion = "3.2.0"
@@ -19,78 +45,36 @@ lazy val scalacTic = "org.scalactic" %% "scalactic" % scalaTestVersion
 lazy val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
 lazy val scalaMock = "org.scalamock" %% "scalamock" % scalaMockVersion % Test
 
-// Common settings
-lazy val commonSettings = Seq(
-  organization := "it.luca",
-  scalaVersion := "2.11.12",
-  version := "0.1",
-
-  // Java compiler options
-  javacOptions ++= "-source" :: "1.8" ::
-    "-target" :: "1.8" :: Nil,
-
-  // Scala options
-  scalacOptions ++= "-encoding" :: "UTF-8" ::
-    "-target:jvm-1.8" ::
-    "-feature" :: "-language:implicitConversions" :: Nil,
-
-  // Compile Java sources first
-  compileOrder := CompileOrder.JavaThenScala,
-
-  // Cloudera Repo (for Spark dependencies)
-  resolvers +=
-    "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-)
-
-lazy val extensionsToExclude: Seq[String] = "properties" :: "xml" :: "yaml" :: Nil
 lazy val dataload = (project in file("."))
-  .settings(name := "aurora-dataload")
   .aggregate(application, core, configuration)
 
 lazy val application = (project in file("application"))
   .settings(
-    commonSettings,
     libraryDependencies ++= sparkCore ::
       sparkSql ::
       scopt ::
       scalacTic ::
       scalaTest ::
-      scalaMock :: Nil,
-
-    // Exclude all resources related to extensions to exclude
-    (unmanagedResources in Compile) := (unmanagedResources in Compile).value
-      .filterNot(x => extensionsToExclude.map {
-        extension => x.getName.endsWith(s".$extension")
-      }.reduce(_ || _)),
-
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
-    assemblyJarName in assembly := s"aurora_dataload.jar",
-    assemblyMergeStrategy in assembly := {
-      case PathList("META-INF", _*) => MergeStrategy.discard
-      case x =>
-        val oldStrategy = (assemblyMergeStrategy in assembly).value
-        oldStrategy(x) }
-  )
-  .dependsOn(core, configuration)
-
-lazy val core = (project in file("core"))
-  .settings(
-    commonSettings,
-    libraryDependencies ++= sparkSql ::
-      lombok ::
-      jsqlParser ::
-      scalacTic ::
-      scalaTest ::
       scalaMock :: Nil
-  )
+  ).dependsOn(
+  core % "test->test;compile->compile",
+  configuration)
 
 lazy val configuration = (project in file("configuration"))
   .settings(
-    name := "configuration",
-    commonSettings,
     libraryDependencies ++= sparkSql ::
       sparkAvro ::
       lombok ::
+      scalacTic ::
+      scalaTest ::
+      scalaMock :: Nil
+  ).dependsOn(
+  core % "test->test;compile->compile")
+
+lazy val core = (project in file("core"))
+  .settings(
+    libraryDependencies ++= sparkSql ::
+      jsqlParser ::
       scalacTic ::
       scalaTest ::
       scalaMock :: Nil

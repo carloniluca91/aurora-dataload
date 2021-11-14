@@ -70,7 +70,7 @@ object DataloadJobRunner
       .config("hive.exec.dynamic.partition.mode", "nonstrict")
       .getOrCreate
 
-    log.info("Successfully initialized {}", classOf[SparkSession].getSimpleName)
+    log.info(s"Successfully initialized ${classOf[SparkSession].getSimpleName}")
     sparkSession
   }
 

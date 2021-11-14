@@ -1,3 +1,3 @@
-val sbtAssemblyVersion = "0.14.10"
+val sbtAssemblyVersion = "1.0.0"
 
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % sbtAssemblyVersion)
