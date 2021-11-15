@@ -67,7 +67,7 @@ object DataloadJobRunner
    * @return
    */
 
-  def readLocalFileAsString(fileName: String): String = {
+  protected def readLocalFileAsString(fileName: String): String = {
 
     val source = Source.fromFile(fileName)
     val output: String = source.mkString("")
@@ -81,7 +81,7 @@ object DataloadJobRunner
    * @return instance of [[SparkSession]]
    */
 
-  def initSparkSession(): SparkSession = {
+  protected def initSparkSession(): SparkSession = {
 
     val sparkSession = SparkSession.builder
       .enableHiveSupport
@@ -103,7 +103,7 @@ object DataloadJobRunner
 
   @throws[ClassNotFoundException]
   @throws[SQLException]
-  def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
+  protected def initImpalaJDBCConnection(properties: PropertiesConfiguration): Connection = {
 
     val driverClassName: String = properties.getString("impala.jdbc.driverClass")
     val impalaJdbcUrl: String = properties.getString("impala.jdbc.url")

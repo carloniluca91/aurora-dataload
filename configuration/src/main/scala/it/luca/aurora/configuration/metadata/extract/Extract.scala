@@ -1,17 +1,24 @@
 package it.luca.aurora.configuration.metadata.extract
 
-import com.fasterxml.jackson.annotation.{JsonProperty, JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import it.luca.aurora.configuration.Dto
 import it.luca.aurora.core.Logging
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.{DataFrame, SparkSession}
+
+/**
+ * Base class representing coordinates for data extraction
+ * @param extractType type of data extraction
+ * @param landingPath HDFS path where dataSource data are expected to land
+ * @param fileNameRegex regex to be matched by files within landingPath
+ */
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
   property = Extract.Type,
   visible = true)
 @JsonSubTypes(Array(new JsonSubTypes.Type(value = classOf[AvroExtract], name = Extract.Avro),
   new JsonSubTypes.Type(value = classOf[CsvExtract], name = Extract.Csv)))
-sealed abstract class Extract(val extractType: String,
+abstract class Extract(val extractType: String,
                               val landingPath: String,
                               val fileNameRegex: String)
   extends Dto
@@ -55,28 +62,4 @@ object Extract {
   final val FileNameRegex = "fileNameRegex"
   final val LandingPath = "landingPath"
   final val Type = "type"
-}
-
-case class AvroExtract(@JsonProperty(Extract.Type) override val extractType: String,
-                       @JsonProperty(Extract.LandingPath) override val landingPath: String,
-                       @JsonProperty(Extract.FileNameRegex) override val fileNameRegex: String)
-  extends Extract(extractType, landingPath, fileNameRegex) {
-
-  override protected def readDataFrame(sparkSession: SparkSession, path: String): DataFrame =
-    sparkSession.read.format("avro").load(path)
-}
-
-case class CsvExtract(@JsonProperty(Extract.Type) override val extractType: String,
-                      @JsonProperty(Extract.LandingPath) override val landingPath: String,
-                      @JsonProperty(Extract.FileNameRegex) override val fileNameRegex: String,
-                      options: Option[Map[String, String]])
-  extends Extract(extractType, landingPath, fileNameRegex) {
-
-  override protected def readDataFrame(sparkSession: SparkSession, path: String): DataFrame = {
-
-    (options match {
-      case Some(value) => sparkSession.read.options(value)
-      case None => sparkSession.read
-    }).csv(path)
-  }
 }

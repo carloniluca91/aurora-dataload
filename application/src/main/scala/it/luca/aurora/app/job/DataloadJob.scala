@@ -3,7 +3,7 @@ package it.luca.aurora.app.job
 import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
-import it.luca.aurora.configuration.metadata.load.{Load, StagingPaths}
+import it.luca.aurora.configuration.metadata.load.{Load, StagingPath}
 import it.luca.aurora.configuration.metadata.transform.{ColumnPartitioning, FileNameRegexPartitioning, Transform}
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
@@ -44,7 +44,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     val dataloadJobLogRecords: Seq[DataloadJobLogRecord] = inputFiles.map { inputFile =>
 
       // Depending on job execution, set optional exception and target directory where processed file will be moved
-      val staginsPaths: StagingPaths = dataSourceMetadata.load.stagingPaths
+      val staginsPaths: StagingPath = dataSourceMetadata.load.stagingPath
       val (exceptionOpt, targetDirectoryPath): (Option[Throwable], String) = processFile(inputFile) match {
         case Success(_) => (None, staginsPaths.success)
         case Failure(exception) =>
@@ -86,10 +86,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val partitionColumnName: String = transform.partitioning.columnName
       val partitionCol: Column = transform.partitioning match {
         case f: FileNameRegexPartitioning => lit(f.getDateFromFileName(extract.fileNameRegex.r, filePath.getName))
-        case c: ColumnPartitioning =>
-          val column: Column = SqlExpressionParser.parse(c.columnExpression)
-          log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnPartitioning].getSimpleName}")
-          column
+        case c: ColumnPartitioning => c.getPartitionColumn
       }
 
       // Invalid records (i.e. that do not satisfy all of dataSource filters)
@@ -116,7 +113,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
 
       // Write data
-      val (trustedTableName, errorTableName): (String, String) = (load.stagingTables.trusted, load.stagingTables.error)
+      val (trustedTableName, errorTableName): (String, String) = (load.stagingTable.trusted, load.stagingTable.error)
       saveIfNotEmpty(finalTrustedDf, trustedTableName, partitionColumnName)
       saveIfNotEmpty(errorDf, errorTableName, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
