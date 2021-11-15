@@ -1,6 +1,6 @@
 organization := "it.luca"
 name := "aurora-dataload"
-version := "1.0"
+version := "1.0.0"
 ThisBuild / scalaVersion := "2.11.12"
 ThisBuild / resolvers += "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
 
@@ -9,7 +9,7 @@ javacOptions ++= "-source" :: "1.8" :: "-target" :: "1.8" :: Nil
 scalacOptions ++= "-encoding" :: "UTF-8" :: "-target:jvm-1.8" :: "-feature" :: "-language:implicitConversions" :: Nil
 
 // Exclude all resources related to extensions to exclude
-lazy val extensionsToExclude: Seq[String] = "properties" :: "xml" :: "yaml" :: Nil
+lazy val extensionsToExclude: Seq[String] = "properties" :: "json" :: "xml" :: "yaml" :: Nil
 (Compile / unmanagedResources) := (Compile / unmanagedResources).value
   .filterNot(x => extensionsToExclude.map {
     extension => x.getName.endsWith(s".$extension")

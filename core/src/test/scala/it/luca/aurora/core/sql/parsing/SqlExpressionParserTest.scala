@@ -1,11 +1,10 @@
 package it.luca.aurora.core.sql.parsing
 
+import it.luca.aurora.core.BasicTest
 import it.luca.aurora.core.sql.functions._
 import org.apache.commons.lang3.StringUtils
 import org.apache.spark.sql.{Column, DataFrame, Row, SparkSession}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should
 
 import java.sql.{Date, Timestamp}
 import java.time.format.DateTimeFormatter
@@ -14,13 +13,12 @@ import java.util
 import scala.util.Try
 
 class SqlExpressionParserTest
-  extends AnyFlatSpec
-    with should.Matchers
+  extends BasicTest
     with BeforeAndAfterAll {
 
   protected implicit val sparkSession: SparkSession = SparkSession.builder()
     .master("local")
-    .appName(s"${classOf[SqlExpressionParserTest].getSimpleName}")
+    .appName(s"${nameOf[SqlExpressionParserTest]}")
     .getOrCreate()
 
   import sparkSession.implicits._
@@ -62,7 +60,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[Concat].getSimpleName} function" in {
+  it should s"parse a ${nameOf[Concat]} function" in {
 
     val columnNames: Seq[String] = SqlExpressionTest.firstColumnName :: SqlExpressionTest.secondColumnName :: Nil
     val expression = s"${FunctionName.Concat}(${columnNames.mkString(", ")})"
@@ -74,7 +72,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples, columnNames)
   }
 
-  it should s"parse a ${classOf[ConcatWs].getSimpleName} function" in {
+  it should s"parse a ${nameOf[ConcatWs]} function" in {
 
     val separator = ","
     val columnNames: Seq[String] = SqlExpressionTest.firstColumnName :: SqlExpressionTest.secondColumnName :: Nil
@@ -87,7 +85,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples, columnNames)
   }
 
-  it should s"parse a ${classOf[DateFormat].getSimpleName} function" in {
+  it should s"parse a ${nameOf[DateFormat]} function" in {
 
     val pattern = "yyyy-MM-dd"
     val dtGeneratorF: Int => Date = i => Date.valueOf(LocalDate.now().minusDays(i))
@@ -100,7 +98,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[DecodeFlag].getSimpleName} function" in {
+  it should s"parse a ${nameOf[DecodeFlag]} function" in {
 
     val testSet: Map[String, (String => Boolean, Seq[String])] = Map(
       s"${FunctionName.DecodeBinaryFlag}(${SqlExpressionTest.firstColumnName})" -> ( {
@@ -122,7 +120,7 @@ class SqlExpressionParserTest
     }
   }
 
-  it should s"parse a ${classOf[LeftOrRightOrBothTrim].getSimpleName} function" in {
+  it should s"parse a ${nameOf[LeftOrRightOrBothTrim]} function" in {
 
     val doubleSpace = "  "
     val samples: Seq[String] = "hello" :: "world" :: Nil
@@ -143,7 +141,7 @@ class SqlExpressionParserTest
     }
   }
 
-  it should s"parse a ${classOf[LeftOrRightPad].getSimpleName} function" in {
+  it should s"parse a ${nameOf[LeftOrRightPad]} function" in {
 
     val (len, padding): (Int, String) = (10, "0")
     val testSet: Map[String, String => String] = Map(
@@ -163,7 +161,7 @@ class SqlExpressionParserTest
     }
   }
 
-  it should s"parse a ${classOf[MatchesDateOrTimestampFormat].getSimpleName} function" in {
+  it should s"parse a ${nameOf[MatchesDateOrTimestampFormat]} function" in {
 
     val (dtPattern, tsPattern) = ("yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss")
     val (dtFormatter, tsFormatter) = (DateTimeFormatter.ofPattern(dtPattern), DateTimeFormatter.ofPattern(tsPattern))
@@ -190,7 +188,7 @@ class SqlExpressionParserTest
     }
   }
 
-  it should s"parse a ${classOf[MatchesRegex].getSimpleName} function" in {
+  it should s"parse a ${nameOf[MatchesRegex]} function" in {
 
     val regexStr = "^\\d+$"
     val expression = s"${FunctionName.MatchesRegex}(${SqlExpressionTest.firstColumnName}, '$regexStr')"
@@ -202,7 +200,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[NeitherNullOrBlank].getSimpleName} function" in {
+  it should s"parse a ${nameOf[NeitherNullOrBlank]} function" in {
 
     val expression = s"${FunctionName.NeitherNullOrBlank}(${SqlExpressionTest.firstColumnName})"
     val functionTest: SqlExpressionTest[String, Boolean] = new SqlExpressionTest[String, Boolean] {
@@ -213,7 +211,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[RegexExtract].getSimpleName} function" in {
+  it should s"parse a ${nameOf[RegexExtract]} function" in {
 
     val (pattern, groupIndex): (String, Int) = ("^\\w+(\\d+)$", 1)
     val expression = s"${FunctionName.RegexExtract}(${SqlExpressionTest.firstColumnName}, '$pattern', $groupIndex)"
@@ -226,7 +224,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[RegexReplace].getSimpleName} function" in {
+  it should s"parse a ${nameOf[RegexReplace]} function" in {
 
     val (pattern, replacement): (String, String) = ("\\.", "")
     val expression = s"${FunctionName.RegexReplace}(${SqlExpressionTest.firstColumnName}, '$pattern', '$replacement')"
@@ -238,7 +236,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[Substring].getSimpleName} function" in {
+  it should s"parse a ${nameOf[Substring]} function" in {
 
     val (pos, len): (Int, Int) = (1, 2)
     val expression = s"${FunctionName.Substring}(${SqlExpressionTest.firstColumnName}, $pos, $len)"
@@ -250,7 +248,7 @@ class SqlExpressionParserTest
     functionTest.test(expression, inputSamples)
   }
 
-  it should s"parse a ${classOf[ToDateOrTimestamp].getSimpleName} function" in {
+  it should s"parse a ${nameOf[ToDateOrTimestamp]} function" in {
 
     val (dtPattern, tsPattern) = ("yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss")
     val (dtFormatter, tsFormatter) = (DateTimeFormatter.ofPattern(dtPattern), DateTimeFormatter.ofPattern(tsPattern))
