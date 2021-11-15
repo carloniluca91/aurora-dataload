@@ -1,6 +1,6 @@
 organization := "it.luca"
 name := "aurora-dataload"
-version := "0.1"
+version := "1.0"
 ThisBuild / scalaVersion := "2.11.12"
 ThisBuild / resolvers += "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
 
@@ -29,7 +29,6 @@ val sparkVersion = "2.4.0-cdh6.3.2"
 val scalaTestVersion = "3.2.0"
 val scalaMockVersion = "5.1.0"
 val scoptVersion = "4.0.0"
-val lombokVersion = "1.18.10"
 val jsqlParserVersion = "4.0"
 
 // Compile dependencies
@@ -37,7 +36,6 @@ lazy val sparkCore = "org.apache.spark" %% "spark-core" % sparkVersion % Provide
 lazy val sparkSql = "org.apache.spark" %% "spark-sql" % sparkVersion % Provided
 lazy val sparkAvro = "org.apache.spark" %% "spark-avro" % sparkVersion % Provided
 lazy val scopt = "com.github.scopt" %% "scopt" % scoptVersion
-lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion % Provided
 lazy val jsqlParser = "com.github.jsqlparser" % "jsqlparser" % jsqlParserVersion
 
 // Test dependencies
@@ -64,7 +62,6 @@ lazy val configuration = (project in file("configuration"))
   .settings(
     libraryDependencies ++= sparkSql ::
       sparkAvro ::
-      lombok ::
       scalacTic ::
       scalaTest ::
       scalaMock :: Nil

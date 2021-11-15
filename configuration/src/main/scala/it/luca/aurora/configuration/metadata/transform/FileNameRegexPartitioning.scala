@@ -1,6 +1,7 @@
 package it.luca.aurora.configuration.metadata.transform
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import it.luca.aurora.configuration.metadata.transform.FileNameRegexPartitioning._
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -18,9 +19,9 @@ import scala.util.matching.Regex
 
 case class FileNameRegexPartitioning(@JsonProperty(Partitioning.Type) override val partitioningType: String,
                                      @JsonProperty(Partitioning.ColumnName) override val columnName: String,
-                                     regexGroup: Int,
-                                     inputPattern: String,
-                                     outputPattern: String)
+                                     @JsonProperty(RegexGroup) regexGroup: Int,
+                                     @JsonProperty(InputPattern) inputPattern: String,
+                                     @JsonProperty(OutputPattern) outputPattern: String)
   extends Partitioning(partitioningType, columnName) {
 
   required(regexGroup, "regexGroup")
@@ -45,4 +46,11 @@ case class FileNameRegexPartitioning(@JsonProperty(Partitioning.Type) override v
       case None => throw new IllegalArgumentException(s"Given file name ($fileName) does not macth given regex ($fileNameRegex)")
     }
   }
+}
+
+object FileNameRegexPartitioning {
+
+  final val RegexGroup = "regexGroup"
+  final val InputPattern = "inputPattern"
+  final val OutputPattern = "outputPattern"
 }

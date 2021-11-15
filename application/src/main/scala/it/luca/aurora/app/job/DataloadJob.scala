@@ -127,14 +127,12 @@ class DataloadJob(override protected val sparkSession: SparkSession,
 
   protected def writeJobLogRecords(records: Seq[DataloadJobLogRecord]): Unit = {
 
-    import sparkSession.implicits._
-
     val recordsDescription: String = s"${records.size} ${classOf[DataloadJobLogRecord].getSimpleName}(s)"
     Try {
 
-      val jobRecordsDataFrame: DataFrame = records.toDF()
-        .withSqlNamingConvention()
+      val jobRecordsDataFrame: DataFrame = sparkSession.createDataFrame(records)
         .coalesce(1)
+        .withSqlNamingConvention()
 
       log.info(s"Successfully converted $recordsDescription to a ${classOf[DataFrame].getSimpleName}")
       val targetTable: String = properties.getString("spark.log.table.name")
