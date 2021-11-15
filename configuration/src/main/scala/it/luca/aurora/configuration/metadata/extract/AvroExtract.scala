@@ -1,7 +1,6 @@
 package it.luca.aurora.configuration.metadata.extract
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.apache.spark.sql.{DataFrame, SparkSession}
 
 /**
  * Coordinates for extracting .avro data
@@ -15,7 +14,4 @@ case class AvroExtract(@JsonProperty(Extract.Type) override val extractType: Str
                        @JsonProperty(Extract.LandingPath) override val landingPath: String,
                        @JsonProperty(Extract.FileNameRegex) override val fileNameRegex: String)
   extends Extract(extractType, landingPath, fileNameRegex) {
-
-  override protected def readDataFrame(sparkSession: SparkSession, path: String): DataFrame =
-    sparkSession.read.format("avro").load(path)
 }

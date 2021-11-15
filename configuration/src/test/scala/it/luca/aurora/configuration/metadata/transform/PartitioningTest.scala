@@ -1,7 +1,7 @@
 package it.luca.aurora.configuration.metadata.transform
 
 import it.luca.aurora.configuration.metadata.DeserializationTest
-import it.luca.aurora.configuration.metadata.transform.ColumnPartitioning._
+import it.luca.aurora.configuration.metadata.transform.ColumnExpressionPartitioning._
 import it.luca.aurora.configuration.metadata.transform.FileNamePartitioning._
 import it.luca.aurora.configuration.metadata.transform.Partitioning._
 
@@ -35,7 +35,7 @@ class PartitioningTest
     fileNameRegexPartitioning.outputPattern shouldBe outputPattern
   }
 
-  it should s"be deserialized as an instance of ${nameOf[ColumnPartitioning]} when $Type = $Column" in {
+  it should s"be deserialized as an instance of ${nameOf[ColumnExpressionPartitioning]} when $Type = $Column" in {
 
     val columnExpression = "columnExpression"
     val json =
@@ -49,9 +49,9 @@ class PartitioningTest
     val partitioning: Partitioning = mapper.readValue(json, classOf[Partitioning])
     partitioning.partitioningType shouldBe Column
     partitioning.columnName shouldBe columnName
-    partitioning.isInstanceOf[ColumnPartitioning] shouldBe true
+    partitioning.isInstanceOf[ColumnExpressionPartitioning] shouldBe true
 
-    val columnPartitioning: ColumnPartitioning = partitioning.asInstanceOf[ColumnPartitioning]
+    val columnPartitioning: ColumnExpressionPartitioning = partitioning.asInstanceOf[ColumnExpressionPartitioning]
     columnPartitioning.columnExpression shouldBe columnExpression
   }
 }

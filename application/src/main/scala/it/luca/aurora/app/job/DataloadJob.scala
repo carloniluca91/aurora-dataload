@@ -1,18 +1,18 @@
 package it.luca.aurora.app.job
 
+import it.luca.aurora.app.job.extractor.DataExtractor
+import it.luca.aurora.app.job.transformer.Transformer
 import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{Load, StagingPath}
-import it.luca.aurora.configuration.metadata.transform.{ColumnPartitioning, FileNamePartitioning, Transform}
+import it.luca.aurora.configuration.metadata.transform.Transform
 import it.luca.aurora.core.implicits._
-import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import it.luca.aurora.core.{Logging, SparkJob}
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path}
-import org.apache.spark.sql.functions.{concat_ws, lit, when}
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import java.sql.Connection
 import scala.util.{Failure, Success, Try}
@@ -26,6 +26,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     with Logging {
 
   protected final val fs: FileSystem = sparkSession.getFileSystem
+  protected final val transformer: Transformer = new Transformer(dataSourceMetadata.extract, dataSourceMetadata.transform)
   protected final val hadoopUserName: String = properties.getString("hadoop.user.name")
   protected final val targetDirectoryPermissions: FsPermission = FsPermission.valueOf(properties.getString("hadoop.target.directory.permissions"))
   protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.permissions"))
@@ -75,46 +76,12 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       val (transform, load): (Transform, Load) = (dataSourceMetadata.transform, dataSourceMetadata.load)
       log.info(s"Starting to ingest file ${filePath.getName}")
 
-      // Read file
-      val inputDataFrame: DataFrame = extract.read(sparkSession, filePath)
-      val filterStatementsAndCols: Seq[(String, Column)] = transform.filters.map { x => (x, SqlExpressionParser.parse(x)) }
-      log.info(s"Successfully parsed all of ${filterStatementsAndCols.size} filter(s)")
-      val overallFilterCol: Column = filterStatementsAndCols.map { case (_, column) => column }.reduce(_ && _)
-      val filterFailureReportCols: Seq[Column] = filterStatementsAndCols.map { case (string, column) => when(!column, string) }
-
-      // Partitioning
-      val partitionColumnName: String = transform.partitioning.columnName
-      val partitionCol: Column = transform.partitioning match {
-        case f: FileNamePartitioning => lit(f.getDateFromFileName(extract.fileNameRegex.r, filePath.getName))
-        case c: ColumnPartitioning => c.getPartitionColumn
-      }
-
-      // Invalid records (i.e. that do not satisfy all of dataSource filters)
-      val failedChecksReportColumnName: String = properties.getString("spark.column.failedChecksReport")
-      val inputFilePathColumnName: String = properties.getString("spark.column.inputFilePath")
-      val errorDf: DataFrame = inputDataFrame.filter(!overallFilterCol)
-        .withColumn(failedChecksReportColumnName, concat_ws(", ", filterFailureReportCols: _*))
-        .withInputFilePathCol(inputFilePathColumnName, filePath)
-        .withTechnicalColumns()
-        .withColumn(partitionColumnName, partitionCol)
-
-      // Valid records
-      val trustedDfColumns: Seq[Column] = transform.transformations.map { SqlExpressionParser.parse }
-      log.info(s"Successfully parsed all of ${trustedDfColumns.size} trasformation(s)")
-      val nonFinalTrustedDf: DataFrame = inputDataFrame.filter(overallFilterCol)
-        .select(trustedDfColumns: _*)
-        .withInputFilePathCol(inputFilePathColumnName, filePath)
-        .withTechnicalColumns()
-        .withColumn(partitionColumnName, partitionCol)
-
-      log.info(s"Successfully applied all of ${trustedDfColumns.size} transformation(s)")
-
-      // Optionally remove duplicates and drop columns
-      val finalTrustedDf: DataFrame = transform.maybeDropDuplicatesAndColumns(nonFinalTrustedDf)
-
-      // Write data
+      // Extract, transform and load data
+      val inputDataFrame: DataFrame = DataExtractor(extract).extract(sparkSession, filePath)
+      val (trustedDf, errorDf): (DataFrame, DataFrame) = transformer.transform(inputDataFrame, filePath)
       val (trustedTableName, errorTableName): (String, String) = (load.stagingTable.trusted, load.stagingTable.error)
-      saveIfNotEmpty(finalTrustedDf, trustedTableName, partitionColumnName)
+      val partitionColumnName: String = transform.partitioning.columnName
+      saveIfNotEmpty(trustedDf, trustedTableName, partitionColumnName)
       saveIfNotEmpty(errorDf, errorTableName, partitionColumnName)
       log.info(s"Successfully ingested file ${filePath.getName}")
     }

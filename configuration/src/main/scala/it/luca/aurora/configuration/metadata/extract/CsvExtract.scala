@@ -1,7 +1,6 @@
 package it.luca.aurora.configuration.metadata.extract
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.apache.spark.sql.{DataFrame, SparkSession}
 
 /**
  * Coordinates for extracting .csv data
@@ -17,12 +16,4 @@ case class CsvExtract(@JsonProperty(Extract.Type) override val extractType: Stri
                       @JsonProperty(Extract.FileNameRegex) override val fileNameRegex: String,
                       options: Option[Map[String, String]])
   extends Extract(extractType, landingPath, fileNameRegex) {
-
-  override protected def readDataFrame(sparkSession: SparkSession, path: String): DataFrame = {
-
-    (options match {
-      case Some(value) => sparkSession.read.options(value)
-      case None => sparkSession.read
-    }).csv(path)
-  }
 }

@@ -13,9 +13,9 @@ import org.apache.spark.sql.Column
  * @param columnExpression Sql expression representing partition column to generate
  */
 
-case class ColumnPartitioning(@JsonProperty(Partitioning.Type) override val partitioningType: String,
-                              @JsonProperty(Partitioning.ColumnName) override val columnName: String,
-                              @JsonProperty(ColumnPartitioning.ColumnExpression) columnExpression: String)
+case class ColumnExpressionPartitioning(@JsonProperty(Partitioning.Type) override val partitioningType: String,
+                                        @JsonProperty(Partitioning.ColumnName) override val columnName: String,
+                                        @JsonProperty(ColumnExpressionPartitioning.ColumnExpression) columnExpression: String)
   extends Partitioning(partitioningType, columnName)
     with Logging {
 
@@ -29,12 +29,12 @@ case class ColumnPartitioning(@JsonProperty(Partitioning.Type) override val part
   def getPartitionColumn: Column = {
 
     val column: Column = SqlExpressionParser.parse(columnExpression)
-    log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnPartitioning].getSimpleName}")
+    log.info(s"Successfully parsed partitioning expression from ${classOf[ColumnExpressionPartitioning].getSimpleName}")
     column
   }
 }
 
-object ColumnPartitioning {
+object ColumnExpressionPartitioning {
 
   final val ColumnExpression = "columnExpression"
 }

@@ -14,7 +14,7 @@ import it.luca.aurora.configuration.Dto
   visible = true)
 @JsonSubTypes(Array(
   new JsonSubTypes.Type(value = classOf[FileNamePartitioning], name = Partitioning.FileName),
-  new JsonSubTypes.Type(value = classOf[ColumnPartitioning], name = Partitioning.Column)))
+  new JsonSubTypes.Type(value = classOf[ColumnExpressionPartitioning], name = Partitioning.Column)))
 abstract class Partitioning(val partitioningType: String,
                             val columnName: String)
   extends Dto {
