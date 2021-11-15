@@ -13,8 +13,8 @@ import it.luca.aurora.configuration.Dto
   property = Partitioning.Type,
   visible = true)
 @JsonSubTypes(Array(
-  new JsonSubTypes.Type(value = classOf[FileNameRegexPartitioning], name = Partitioning.FileNameRegex),
-  new JsonSubTypes.Type(value = classOf[ColumnPartitioning], name = Partitioning.ColumnName)))
+  new JsonSubTypes.Type(value = classOf[FileNamePartitioning], name = Partitioning.FileName),
+  new JsonSubTypes.Type(value = classOf[ColumnPartitioning], name = Partitioning.Column)))
 abstract class Partitioning(val partitioningType: String,
                             val columnName: String)
   extends Dto {
@@ -26,8 +26,8 @@ abstract class Partitioning(val partitioningType: String,
 object Partitioning {
 
   final val Column = "column"
-  final val ColumnName = "columnName"
+  final val FileName = "fileName"
 
-  final val FileNameRegex = "fileNameRegex"
   final val Type = "type"
+  final val ColumnName = "columnName"
 }

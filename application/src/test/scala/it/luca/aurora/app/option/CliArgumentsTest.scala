@@ -24,7 +24,7 @@ class CliArgumentsTest
 
   s"A ${nameOf[CliArguments]}" should "be correctly initialized given short option argument" in {
 
-    val args: Seq[String] = cliOptionMapToArgs(optionMap)(_.shortOption.toString)
+    val args: Seq[String] = cliOptionMapToArgs(optionMap)(x => s"-${x.shortOption.toString}")
     val cliArgumentsOpt: Option[CliArguments] = CliArguments.parse(args, CliArguments())
     cliArgumentsOpt shouldBe Some(_: CliArguments)
     val cliArguments: CliArguments = cliArgumentsOpt.get
@@ -35,7 +35,7 @@ class CliArgumentsTest
 
   it should "be correctly initialized given long option argument" in {
 
-    val args: Seq[String] = cliOptionMapToArgs(optionMap)(_.longOption)
+    val args: Seq[String] = cliOptionMapToArgs(optionMap)(x => s"--${x.longOption}")
     val cliArgumentsOpt: Option[CliArguments] = CliArguments.parse(args, CliArguments())
     cliArgumentsOpt shouldBe Some(_: CliArguments)
     val cliArguments: CliArguments = cliArgumentsOpt.get

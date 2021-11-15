@@ -1,7 +1,7 @@
 package it.luca.aurora.app.datasource
+
 import it.luca.aurora.configuration.metadata.extract.{AvroExtract, Extract}
-import it.luca.aurora.configuration.metadata.load.{FileNameRegexInfo, PartitionInfo}
-import it.luca.aurora.configuration.metadata.transform.Transform
+import it.luca.aurora.configuration.metadata.transform.{FileNamePartitioning, Partitioning, Transform}
 
 class AmexMetadataTest
   extends DataSourceMetadataTest("AMEX") {
@@ -13,12 +13,12 @@ class AmexMetadataTest
 
   override protected def testTransform(transform: Transform): Unit = {
 
-    Option(transform.getDropColumns) shouldBe None
-    Option(transform.getDropDuplicates) shouldBe None
+    transform.dropColumns shouldBe None
+    transform.dropDuplicates shouldBe None
   }
 
-  override protected def testPartitionInfo(partitionInfo: PartitionInfo): Unit = {
+  override protected def testPartitioning(partitioning: Partitioning): Unit = {
 
-    partitionInfo.isInstanceOf[FileNameRegexInfo] shouldBe true
+    partitioning.isInstanceOf[FileNamePartitioning] shouldBe true
   }
 }

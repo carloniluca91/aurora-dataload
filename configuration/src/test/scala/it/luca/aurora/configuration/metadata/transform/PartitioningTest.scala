@@ -2,7 +2,7 @@ package it.luca.aurora.configuration.metadata.transform
 
 import it.luca.aurora.configuration.metadata.DeserializationTest
 import it.luca.aurora.configuration.metadata.transform.ColumnPartitioning._
-import it.luca.aurora.configuration.metadata.transform.FileNameRegexPartitioning._
+import it.luca.aurora.configuration.metadata.transform.FileNamePartitioning._
 import it.luca.aurora.configuration.metadata.transform.Partitioning._
 
 class PartitioningTest
@@ -11,13 +11,13 @@ class PartitioningTest
   private val columnName: String = "columnName"
 
   s"A ${nameOf[Partitioning]}" should
-    s"be deserialized as an instance of ${nameOf[FileNameRegexPartitioning]} when $Type = $FileNameRegex" in {
+    s"be deserialized as an instance of ${nameOf[FileNamePartitioning]} when $Type = $FileName" in {
 
     val (regexGroup, inputPattern, outputPattern) = (1, "yyyyMMdd", "yyyy-MM-dd")
     val json =
       s"""
         |{
-        |   "$Type": "${Partitioning.FileNameRegex}",
+        |   "$Type": "${Partitioning.FileName}",
         |   "$ColumnName": "$columnName",
         |   "$RegexGroup": "$regexGroup",
         |   "$InputPattern": "$inputPattern",
@@ -25,11 +25,11 @@ class PartitioningTest
         |}""".stripMargin
 
     val partitioning: Partitioning = mapper.readValue(json, classOf[Partitioning])
-    partitioning.partitioningType shouldBe FileNameRegex
+    partitioning.partitioningType shouldBe FileName
     partitioning.columnName shouldBe columnName
-    partitioning.isInstanceOf[FileNameRegexPartitioning] shouldBe true
+    partitioning.isInstanceOf[FileNamePartitioning] shouldBe true
 
-    val fileNameRegexPartitioning: FileNameRegexPartitioning = partitioning.asInstanceOf[FileNameRegexPartitioning]
+    val fileNameRegexPartitioning: FileNamePartitioning = partitioning.asInstanceOf[FileNamePartitioning]
     fileNameRegexPartitioning.regexGroup shouldBe regexGroup
     fileNameRegexPartitioning.inputPattern shouldBe inputPattern
     fileNameRegexPartitioning.outputPattern shouldBe outputPattern

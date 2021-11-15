@@ -4,7 +4,7 @@ import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.load.{Load, StagingPath}
-import it.luca.aurora.configuration.metadata.transform.{ColumnPartitioning, FileNameRegexPartitioning, Transform}
+import it.luca.aurora.configuration.metadata.transform.{ColumnPartitioning, FileNamePartitioning, Transform}
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
 import it.luca.aurora.core.{Logging, SparkJob}
@@ -85,7 +85,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
       // Partitioning
       val partitionColumnName: String = transform.partitioning.columnName
       val partitionCol: Column = transform.partitioning match {
-        case f: FileNameRegexPartitioning => lit(f.getDateFromFileName(extract.fileNameRegex.r, filePath.getName))
+        case f: FileNamePartitioning => lit(f.getDateFromFileName(extract.fileNameRegex.r, filePath.getName))
         case c: ColumnPartitioning => c.getPartitionColumn
       }
 

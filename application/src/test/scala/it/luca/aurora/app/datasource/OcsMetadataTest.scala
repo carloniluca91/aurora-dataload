@@ -1,10 +1,7 @@
 package it.luca.aurora.app.datasource
 
 import it.luca.aurora.configuration.metadata.extract.{CsvExtract, Extract}
-import it.luca.aurora.configuration.metadata.load.{FileNameRegexInfo, PartitionInfo}
-import it.luca.aurora.configuration.metadata.transform.Transform
-
-import scala.collection.JavaConversions._
+import it.luca.aurora.configuration.metadata.transform.{FileNamePartitioning, Partitioning, Transform}
 
 class OcsMetadataTest
   extends DataSourceMetadataTest("OCS") {
@@ -13,18 +10,18 @@ class OcsMetadataTest
 
     extract.isInstanceOf[CsvExtract] shouldBe true
     val csvExtract = extract.asInstanceOf[CsvExtract]
-    csvExtract.getConfiguration.getOptions.isEmpty shouldBe false
+    csvExtract.options shouldBe false
   }
 
   override protected def testTransform(transform: Transform): Unit = {
 
-    val dropDuplicatesCols: Seq[String] = transform.getDropDuplicates
-    dropDuplicatesCols.isEmpty shouldBe false
-    dropDuplicatesCols.size shouldEqual 2
+    val dropDuplicatesOpt: Option[Seq[String]] = transform.dropDuplicates
+    dropDuplicatesOpt shouldBe Some(_: Seq[String])
+    dropDuplicatesOpt.get.size shouldEqual 2
   }
 
-  override protected def testPartitionInfo(partitionInfo: PartitionInfo): Unit = {
+  override protected def testPartitioning(partitioning: Partitioning): Unit = {
 
-    partitionInfo.isInstanceOf[FileNameRegexInfo] shouldBe true
+    partitioning.isInstanceOf[FileNamePartitioning] shouldBe true
   }
 }

@@ -52,7 +52,7 @@ object DataloadJobLogRecord {
       applicationStartTime = ssWrapper.startTimeAsTimestamp,
       applicationStartDate = ssWrapper.startTimeAsString("yyyy-MM-dd"),
       dataSourceId = dataSource.id,
-      metadataFilePath = dataSource.id,
+      metadataFilePath = dataSource.metadataFilePath,
       ingestedFile = filePath.toString,
       ingestionOperationCode = exceptionOpt.map(_ => KO).getOrElse(OK),
       exceptionClass = exceptionOpt.map(x => x.getClass.getName),

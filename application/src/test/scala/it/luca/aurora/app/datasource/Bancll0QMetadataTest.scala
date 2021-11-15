@@ -1,7 +1,7 @@
 package it.luca.aurora.app.datasource
+
 import it.luca.aurora.configuration.metadata.extract.{CsvExtract, Extract}
-import it.luca.aurora.configuration.metadata.load.{FileNameRegexInfo, PartitionInfo}
-import it.luca.aurora.configuration.metadata.transform.Transform
+import it.luca.aurora.configuration.metadata.transform.{FileNamePartitioning, Partitioning, Transform}
 
 class Bancll0QMetadataTest
   extends DataSourceMetadataTest("BANCLL0Q") {
@@ -9,17 +9,17 @@ class Bancll0QMetadataTest
   override protected def testExtract(extract: Extract): Unit = {
 
     extract.isInstanceOf[CsvExtract] shouldBe true
-    extract.asInstanceOf[CsvExtract].getConfiguration.getOptions.isEmpty shouldBe false
+    extract.asInstanceOf[CsvExtract].options shouldBe Some(_: Map[String, String])
   }
 
   override protected def testTransform(transform: Transform): Unit = {
 
-    Option(transform.getDropColumns) shouldBe None
-    Option(transform.getDropDuplicates) shouldBe None
+    transform.dropColumns shouldBe None
+    transform.dropDuplicates shouldBe None
   }
 
-  override protected def testPartitionInfo(partitionInfo: PartitionInfo): Unit = {
+  override protected def testPartitioning(partitioning: Partitioning): Unit = {
 
-    partitionInfo.isInstanceOf[FileNameRegexInfo] shouldBe true
+    partitioning.isInstanceOf[FileNamePartitioning] shouldBe true
   }
 }
