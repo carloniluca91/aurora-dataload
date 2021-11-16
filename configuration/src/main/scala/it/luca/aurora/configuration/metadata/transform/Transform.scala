@@ -12,10 +12,10 @@ import it.luca.aurora.configuration.Dto
  * @param partitioning instance of [[Partitioning]]
  */
 
-case class Transform(@JsonProperty(Transform.Filters) filters: List[String],
-                     @JsonProperty(Transform.Transformations) transformations: List[String],
-                     dropDuplicates: Option[List[String]],
-                     dropColumns: Option[List[String]],
+case class Transform(@JsonProperty(Transform.Filters) filters: Seq[String],
+                     @JsonProperty(Transform.Transformations) transformations: Seq[String],
+                     dropDuplicates: Option[Seq[String]],
+                     dropColumns: Option[Seq[String]],
                      partitioning: Partitioning)
   extends Dto {
 

@@ -5,8 +5,12 @@ ThisBuild / scalaVersion := "2.11.12"
 ThisBuild / resolvers += "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
 
 // Compiler option
-javacOptions ++= "-source" :: "1.8" :: "-target" :: "1.8" :: Nil
-scalacOptions ++= "-encoding" :: "UTF-8" :: "-target:jvm-1.8" :: "-feature" :: "-language:implicitConversions" :: Nil
+ThisBuild / javacOptions ++= "-source" :: "1.8" :: "-target" :: "1.8" :: Nil
+ThisBuild / scalacOptions ++= "-encoding" :: "UTF-8" ::
+  "-target:jvm-1.8" ::
+  "-unchecked" ::
+  "-deprecation" ::
+  "-feature" :: Nil
 
 // Exclude all resources related to extensions to exclude
 lazy val extensionsToExclude: Seq[String] = "properties" :: "json" :: "xml" :: "yaml" :: Nil

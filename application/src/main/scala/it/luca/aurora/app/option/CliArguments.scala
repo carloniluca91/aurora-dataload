@@ -18,7 +18,7 @@ object CliArguments extends CustomOptionParser[CliArguments] {
 
   val PropertiesFile: _RequiredWithValidation[String] = new _RequiredWithValidation[String] {
     override def validation: String => Either[String, Unit] =
-      s => if (s.endsWith(".properties")) Right() else Left(s"A .properties file was expected. Found $s")
+      s => if (s.endsWith(".properties")) success else failure(s"A .properties file was expected. Found $s")
     override def shortOption: Char = 'p'
     override def longOption: String = "properties"
     override def description: String = "Properties file for Spark application"
@@ -29,7 +29,7 @@ object CliArguments extends CustomOptionParser[CliArguments] {
 
   val DataSourcesFile: _RequiredWithValidation[String] = new _RequiredWithValidation[String] {
     override def validation: String => Either[String, Unit] =
-      s => if (s.endsWith(".json")) Right() else Left(s"A .json file was expected. Found $s")
+      s => if (s.endsWith(".json")) success else failure(s"A .json file was expected. Found $s")
     override def shortOption: Char = 'j'
     override def longOption: String = "json"
     override def description: String = "DataSource .json file for Spark application"

@@ -1,8 +1,9 @@
 package it.luca.aurora.core
 
 import org.apache.hadoop.fs.FileSystem
-import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, SparkSession}
+
+import scala.language.implicitConversions
 
 package object implicits {
 

@@ -1,6 +1,7 @@
 package it.luca.aurora.core.implicits
 
 import it.luca.aurora.core.Logging
+import it.luca.aurora.core.implicits.DataFrameWrapper.{ApplicationId, ApplicationName, ApplicationStartDate, ApplicationStartTime, InsertDt, InsertTs}
 import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -55,12 +56,12 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
     val sparkSession: SparkSession = dataFrame.sparkSession
 
     dataFrame
-      .withColumn("insert_ts", lit(Timestamp.valueOf(now)))
-      .withColumn("insert_dt", lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
-      .withColumn("application_id", lit(sparkSession.applicationId))
-      .withColumn("application_name", lit(sparkSession.appName))
-      .withColumn("application_start_time", lit(sparkSession.startTimeAsTimestamp))
-      .withColumn("application_start_date", lit(sparkSession.startTimeAsString("yyyy-MM-dd")))
+      .withColumn(InsertTs, lit(Timestamp.valueOf(now)))
+      .withColumn(InsertDt, lit(now.format(DateTimeFormatter.ISO_LOCAL_DATE)))
+      .withColumn(ApplicationId, lit(sparkSession.applicationId))
+      .withColumn(ApplicationName, lit(sparkSession.appName))
+      .withColumn(ApplicationStartTime, lit(sparkSession.startTimeAsTimestamp))
+      .withColumn(ApplicationStartDate, lit(sparkSession.startTimeAsString("yyyy-MM-dd")))
   }
 
   /**
@@ -75,4 +76,22 @@ class DataFrameWrapper(private val dataFrame: DataFrame)
       case (df, columnName) =>
         df.withColumnRenamed(columnName, columnName.replaceAll("[A-Z]", "_$0").toLowerCase)}
   }
+}
+
+object DataFrameWrapper {
+
+  val InsertTs = "insert_ts"
+  val InsertDt = "insert_dt"
+  val ApplicationId = "application_id"
+  val ApplicationName = "application_name"
+  val ApplicationStartTime = "application_start_time"
+  val ApplicationStartDate = "application_start_date"
+
+  val TechnicalColumns: Seq[String] =
+    InsertTs ::
+      InsertDt ::
+      ApplicationId ::
+      ApplicationName ::
+      ApplicationStartTime ::
+      ApplicationStartDate :: Nil
 }

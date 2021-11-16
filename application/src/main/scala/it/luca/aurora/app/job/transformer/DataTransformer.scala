@@ -1,6 +1,6 @@
 package it.luca.aurora.app.job.transformer
 
-import it.luca.aurora.app.job.transformer.Transformer._
+import it.luca.aurora.app.job.transformer.DataTransformer._
 import it.luca.aurora.configuration.metadata.extract.Extract
 import it.luca.aurora.configuration.metadata.transform.{ColumnExpressionPartitioning, FileNamePartitioning, Transform}
 import it.luca.aurora.core.Logging
@@ -16,8 +16,8 @@ import org.apache.spark.sql.{Column, DataFrame}
  * @param transform dataSource's transform specifications
  */
 
-class Transformer(protected val extract: Extract,
-                  protected val transform: Transform)
+class DataTransformer(protected val extract: Extract,
+                      protected val transform: Transform)
   extends Logging {
 
   /**
@@ -96,7 +96,7 @@ class Transformer(protected val extract: Extract,
   }
 }
 
-object Transformer {
+object DataTransformer {
 
   val InputFilePath: String = "input_file_path"
   val FailedChecksNumber = "failed_checks_number"

@@ -1,7 +1,7 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.app.job.extractor.DataExtractor
-import it.luca.aurora.app.job.transformer.Transformer
+import it.luca.aurora.app.job.transformer.DataTransformer
 import it.luca.aurora.configuration.datasource.DataSource
 import it.luca.aurora.configuration.metadata.DataSourceMetadata
 import it.luca.aurora.configuration.metadata.extract.Extract
@@ -26,7 +26,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
     with Logging {
 
   protected final val fs: FileSystem = sparkSession.getFileSystem
-  protected final val transformer: Transformer = new Transformer(dataSourceMetadata.extract, dataSourceMetadata.transform)
+  protected final val transformer: DataTransformer = new DataTransformer(dataSourceMetadata.extract, dataSourceMetadata.transform)
   protected final val hadoopUserName: String = properties.getString("hadoop.user.name")
   protected final val targetDirectoryPermissions: FsPermission = FsPermission.valueOf(properties.getString("hadoop.target.directory.permissions"))
   protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.permissions"))
