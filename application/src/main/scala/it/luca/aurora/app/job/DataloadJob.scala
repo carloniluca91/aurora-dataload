@@ -29,7 +29,7 @@ class DataloadJob(override protected val sparkSession: SparkSession,
   protected final val transformer: DataTransformer = new DataTransformer(dataSourceMetadata.extract, dataSourceMetadata.transform)
   protected final val hadoopUserName: String = properties.getString("hadoop.user.name")
   protected final val targetDirectoryPermissions: FsPermission = FsPermission.valueOf(properties.getString("hadoop.target.directory.permissions"))
-  protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.permissions"))
+  protected final val tablePermissions: FsPermission = FsPermission.valueOf(properties.getString("spark.output.table.fsPermissions"))
   protected final val maxFileSizeInBytes: Int = properties.getInt("spark.output.file.maxSizeInBytes")
   protected final val yarnUiUrl: String = properties.getString("yarn.ui.url")
 

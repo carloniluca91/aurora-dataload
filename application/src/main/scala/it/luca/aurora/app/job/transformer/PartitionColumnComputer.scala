@@ -1,22 +1,21 @@
 package it.luca.aurora.app.job.transformer
 
-import it.luca.aurora.core.Logging
+import it.luca.aurora.configuration.metadata.transform.Partitioning
 import org.apache.spark.sql.Column
 
 /**
- * Trait to be implemented for computing a partition column
- * @tparam T type of input needed for partition column computation
+ * Base class defining a typed partition column computer
+ * @param partitioning instance of a [[Partitioning]]'s subclass
+ * @tparam P type of [[Partitioning]]'s subclass
  */
 
-trait PartitionColumnComputer[T]
-  extends Logging {
+abstract class PartitionColumnComputer[P <: Partitioning](protected val partitioning: P) {
 
   /**
    * Get partition column
-   * @param input instance of input needed for partition column computation
    * @return partition column
    */
 
-  def getPartitionColumn(input: T): Column
+  def getPartitionColumn: Column
 
 }

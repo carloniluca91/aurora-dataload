@@ -2,7 +2,7 @@ package it.luca.aurora.app.job.transformer
 
 import it.luca.aurora.app.job.transformer.DataTransformer._
 import it.luca.aurora.configuration.metadata.extract.Extract
-import it.luca.aurora.configuration.metadata.transform.{ColumnExpressionPartitioning, FileNamePartitioning, Transform}
+import it.luca.aurora.configuration.metadata.transform.{ColumnExpressionPartitioning, FileNamePartitioning, Partitioning, Transform}
 import it.luca.aurora.core.Logging
 import it.luca.aurora.core.implicits._
 import it.luca.aurora.core.sql.parsing.SqlExpressionParser
@@ -36,11 +36,12 @@ class DataTransformer(protected val extract: Extract,
       case (string, column) => when(!column, string).otherwise(NoFailedCheckString) }
 
     // Partitioning
-    val partitionColumnName: String = transform.partitioning.columnName
-    val partitionCol: Column = transform.partitioning match {
-      case c: ColumnExpressionPartitioning => ColumnExpressionPartitionComputer.getPartitionColumn(c)
-      case f: FileNamePartitioning => FileNamePartitionComputer.getPartitionColumn((filePath, extract.fileNameRegex.r, f))
+    val partitionColumnComputer: PartitionColumnComputer[_ <: Partitioning] = transform.partitioning match {
+      case c: ColumnExpressionPartitioning => new ColumnExpressionPartitionComputer(c)
+      case f: FileNamePartitioning => new FileNamePartitionComputer(filePath, extract.fileNameRegex.r, f)
     }
+    val partitionColumnName: String = transform.partitioning.columnName
+    val partitionColumn: Column = partitionColumnComputer.getPartitionColumn
 
     // Valid records
     val trustedDfColumns: Seq[Column] = transform.transformations.map { SqlExpressionParser.parse }
@@ -49,7 +50,7 @@ class DataTransformer(protected val extract: Extract,
       .select(trustedDfColumns: _*)
       .withInputFilePathCol(InputFilePath, filePath)
       .withTechnicalColumns()
-      .withColumn(partitionColumnName, partitionCol)
+      .withColumn(partitionColumnName, partitionColumn)
 
     // Optionally remove duplicates and drop columns
     log.info(s"Successfully applied all of ${trustedDfColumns.size} transformation(s)")
@@ -61,7 +62,7 @@ class DataTransformer(protected val extract: Extract,
       .withColumn(FailedChecks, array(filterFailureReportCols: _*))
       .withInputFilePathCol(InputFilePath, filePath)
       .withTechnicalColumns()
-      .withColumn(partitionColumnName, partitionCol)
+      .withColumn(partitionColumnName, partitionColumn)
 
     (finalTrustedDf, errorDf)
   }

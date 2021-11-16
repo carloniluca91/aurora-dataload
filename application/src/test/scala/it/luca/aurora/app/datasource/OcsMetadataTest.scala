@@ -10,7 +10,7 @@ class OcsMetadataTest
 
     extract.isInstanceOf[CsvExtract] shouldBe true
     val csvExtract = extract.asInstanceOf[CsvExtract]
-    csvExtract.options shouldBe false
+    csvExtract.options.isDefined shouldBe true
   }
 
   override protected def testTransform(transform: Transform): Unit = {
@@ -18,6 +18,7 @@ class OcsMetadataTest
     val dropDuplicatesOpt: Option[Seq[String]] = transform.dropDuplicates
     dropDuplicatesOpt shouldBe Some(_: Seq[String])
     dropDuplicatesOpt.get.size shouldEqual 2
+    transform.dropColumns shouldBe None
   }
 
   override protected def testPartitioning(partitioning: Partitioning): Unit = {

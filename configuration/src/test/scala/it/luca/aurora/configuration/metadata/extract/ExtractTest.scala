@@ -8,7 +8,7 @@ class ExtractTest
   private val landingPath = "landingPath"
   private val fileNameRegex = "fileNameRegex"
 
-  s"A ${nameOf[Extract]}" should
+  s"An instance of ${nameOf[Extract]}" should
     s"be deserialized as an instance of ${nameOf[AvroExtract]} when ${Extract.Type} = ${Extract.Avro}" in {
 
     val json =
@@ -26,7 +26,7 @@ class ExtractTest
     extract.isInstanceOf[AvroExtract] shouldBe true
   }
 
-  s"A ${nameOf[Extract]}" should
+  it should
     s"be deserialized as an instance of ${nameOf[CsvExtract]} when ${Extract.Type} = ${Extract.Csv} and no options are provided" in {
 
     val json =
@@ -47,7 +47,7 @@ class ExtractTest
     csvExtract.options shouldBe None
   }
 
-  s"A ${nameOf[Extract]}" should
+  it should
     s"be deserialized as an instance of ${nameOf[CsvExtract]} when ${Extract.Type} = ${Extract.Csv} and some options are provided" in {
 
     val (key, value) = ("sep", "|")

@@ -10,7 +10,7 @@ class PartitioningTest
 
   private val columnName: String = "columnName"
 
-  s"A ${nameOf[Partitioning]}" should
+  s"An instance of ${nameOf[Partitioning]}" should
     s"be deserialized as an instance of ${nameOf[FileNamePartitioning]} when $Type = $FileName" in {
 
     val (regexGroup, inputPattern, outputPattern) = (1, "yyyyMMdd", "yyyy-MM-dd")

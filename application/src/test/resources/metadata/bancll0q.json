@@ -1,70 +1,64 @@
 {
   "id": "BANCLL0Q",
-  "dataSourcePaths": {
-    "landing": "${datasources.data.root}/bancll0q/landing",
-    "success": "${datasources.data.root}/bancll0q/success",
-    "failed": "${datasources.data.root}/bancll0q/failed"
+  "extract": {
+    "type": "csv",
+    "landingPath": "${datasources.data.root}/bancll0q/landing",
+    "fileNameRegex": "^cedacri_bancll0q_(\\d{8})\\.csv\\.gz$",
+    "options": {
+        "sep": ";",
+        "header": "true"
+    }
   },
-  "etlConfiguration": {
-    "extract": {
-      "type": "CSV",
-      "fileNameRegex": "^cedacri_bancll0q_(\\d{8})\\.csv\\.gz$",
-      "configuration": {
-        "options": {
-          "sep": ";",
-          "header": "true"
-        }
-      }
+  "transform": {
+    "filters": [
+      "NEITHER_NULL_OR_BLANK(cod_isti)",
+      "cod_isti IN ('I01', 'I27', 'I81', 'I94', 'I95', 'IE')",
+      "NEITHER_NULL_OR_BLANK(cod_isin)",
+      "MATCHES_REGEX(cod_isin, '^T(IT|EU|EST)(\\d+)$')",
+      "MATCHES_TIMESTAMP_FORMAT(data_rif, 'yyyy/MM/dd HH:mm:ss')",
+      "MATCHES_TIMESTAMP_FORMAT(data_ril, 'yyyy/MM/dd HH:mm:ss')",
+      "NEITHER_NULL_OR_BLANK(tipo_rec)",
+      "NEITHER_NULL_OR_BLANK(perc_com)",
+      "MATCHES_REGEX(perc_com, '^0,\\d+$')",
+      "NEITHER_NULL_OR_BLANK(perc_ret)",
+      "MATCHES_REGEX(perc_ret, '^0,\\d+$')",
+      "NEITHER_NULL_OR_BLANK(impor_01)",
+      "MATCHES_REGEX(impor_01, '^[\\d.]+,\\d+')",
+      "NEITHER_NULL_OR_BLANK(impor_02)",
+      "MATCHES_REGEX(impor_02, '^[\\d.]+,\\d+')"
+    ],
+    "transformations": [
+      "cod_isti AS cd_istituto",
+      "CASE WHEN cod_isti = 'I01' THEN 'Deutsche Bank' WHEN cod_isti = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
+      "cod_isin AS cd_isin",
+      "CASE WHEN MATCHES_REGEX(cod_isin, '^TIT(\\d+)$') THEN 'Titolo Italiano' WHEN MATCHES_REGEX(cod_isin, '^TEU(\\d+)$') THEN 'Titolo Europeo' ELSE 'Titolo Extra Europeo' END AS desc_isin",
+      "REGEX_EXTRACT(cod_isin, '^T(IT|EU|EST)(\\d+)$', 2) AS cd_titolo_isin",
+      "TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss') AS ts_riferimento",
+      "DATE_FORMAT(TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss'), 'yyyy-MM-dd') AS dt_riferimento",
+      "TO_TIMESTAMP(data_ril, 'yyyy/MM/dd HH:mm:ss') AS ts_rilevamento",
+      "DATE_FORMAT(TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss'), 'yyyy-MM-dd') AS dt_rilevamento",
+      "tipo_rec AS tp_record",
+      "CAST(REGEX_REPLACE(perc_com, ',', '.') AS double) AS prc_voce_costo",
+      "CAST(REGEX_REPLACE(perc_ret, ',', '.') AS double) AS prc_retrocessione",
+      "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_01, '\\.', ''), ',', '.') AS double) AS imp_min",
+      "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_02, '\\.', ''), ',', '.') AS double) AS imp_max"
+    ],
+    "partitioning": {
+      "type": "fileName",
+      "columnName": "${spark.partition.column.daily}",
+      "regexGroup": 1,
+      "inputPattern": "yyyyMMdd",
+      "outputPattern": "yyyy-MM-dd"
+    }
+  },
+  "load": {
+    "stagingPath": {
+      "success": "${datasources.data.root}/bancll0q/success",
+      "failed": "${datasources.data.root}/bancll0q/failed"
     },
-    "transform": {
-      "filters": [
-        "NEITHER_NULL_OR_BLANK(cod_isti)",
-        "cod_isti IN ('I01', 'I27', 'I81', 'I94', 'I95', 'IE')",
-        "NEITHER_NULL_OR_BLANK(cod_isin)",
-        "MATCHES_REGEX(cod_isin, '^T(IT|EU|EST)(\\d+)$')",
-        "MATCHES_TIMESTAMP_FORMAT(data_rif, 'yyyy/MM/dd HH:mm:ss')",
-        "MATCHES_TIMESTAMP_FORMAT(data_ril, 'yyyy/MM/dd HH:mm:ss')",
-        "NEITHER_NULL_OR_BLANK(tipo_rec)",
-        "NEITHER_NULL_OR_BLANK(perc_com)",
-        "MATCHES_REGEX(perc_com, '^0,\\d+$')",
-        "NEITHER_NULL_OR_BLANK(perc_ret)",
-        "MATCHES_REGEX(perc_ret, '^0,\\d+$')",
-        "NEITHER_NULL_OR_BLANK(impor_01)",
-        "MATCHES_REGEX(impor_01, '^[\\d.]+,\\d+')",
-        "NEITHER_NULL_OR_BLANK(impor_02)",
-        "MATCHES_REGEX(impor_02, '^[\\d.]+,\\d+')"
-      ],
-      "transformations": [
-        "cod_isti AS cd_istituto",
-        "CASE WHEN cod_isti = 'I01' THEN 'Deutsche Bank' WHEN cod_isti = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
-        "cod_isin AS cd_isin",
-        "CASE WHEN MATCHES_REGEX(cod_isin, '^TIT(\\d+)$') THEN 'Titolo Italiano' WHEN MATCHES_REGEX(cod_isin, '^TEU(\\d+)$') THEN 'Titolo Europeo' ELSE 'Titolo Extra Europeo' END AS desc_isin",
-        "REGEX_EXTRACT(cod_isin, '^T(IT|EU|EST)(\\d+)$', 2) AS cd_titolo_isin",
-        "TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss') AS ts_riferimento",
-        "DATE_FORMAT(TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss'), 'yyyy-MM-dd') AS dt_riferimento",
-        "TO_TIMESTAMP(data_ril, 'yyyy/MM/dd HH:mm:ss') AS ts_rilevamento",
-        "DATE_FORMAT(TO_TIMESTAMP(data_rif, 'yyyy/MM/dd HH:mm:ss'), 'yyyy-MM-dd') AS dt_rilevamento",
-        "tipo_rec AS tp_record",
-        "CAST(REGEX_REPLACE(perc_com, ',', '.') AS double) AS prc_voce_costo",
-        "CAST(REGEX_REPLACE(perc_ret, ',', '.') AS double) AS prc_retrocessione",
-        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_01, '\\.', ''), ',', '.') AS double) AS imp_min",
-        "CAST(REGEX_REPLACE(REGEX_REPLACE(impor_02, '\\.', ''), ',', '.') AS double) AS imp_max"
-      ]
-    },
-    "load": {
-      "partitionInfo": {
-        "type": "FILE_NAME_REGEX",
-        "columnName": "${spark.output.partition.daily}",
-        "configuration": {
-          "regexGroup": 1,
-          "inputPattern": "yyyyMMdd",
-          "outputPattern": "yyyy-MM-dd"
-        }
-      },
-      "target": {
-        "trusted": "${impala.db.name}.t_bancll0q_trd",
-        "error": "${impala.db.name}.t_bancll0q_err"
-      }
+    "stagingTable": {
+      "trusted": "${impala.db.name}.t_bancll0q_trd",
+      "error": "${impala.db.name}.t_bancll0q_err"
     }
   }
 }

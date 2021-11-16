@@ -45,7 +45,7 @@
     ],
     "partitioning": {
       "type": "fileName",
-      "columnName": "${spark.output.partition.daily}",
+      "columnName": "${spark.partition.column.daily}",
       "regexGroup": 1,
       "inputPattern": "yyyyMMdd",
       "outputPattern": "yyyy-MM-dd"

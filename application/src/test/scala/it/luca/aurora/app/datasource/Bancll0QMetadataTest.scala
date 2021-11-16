@@ -9,13 +9,14 @@ class Bancll0QMetadataTest
   override protected def testExtract(extract: Extract): Unit = {
 
     extract.isInstanceOf[CsvExtract] shouldBe true
-    extract.asInstanceOf[CsvExtract].options shouldBe Some(_: Map[String, String])
+    val csvExtract = extract.asInstanceOf[CsvExtract]
+    csvExtract.options.isDefined shouldBe true
   }
 
   override protected def testTransform(transform: Transform): Unit = {
 
-    transform.dropColumns shouldBe None
     transform.dropDuplicates shouldBe None
+    transform.dropColumns shouldBe None
   }
 
   override protected def testPartitioning(partitioning: Partitioning): Unit = {

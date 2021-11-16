@@ -13,8 +13,8 @@ class AmexMetadataTest
 
   override protected def testTransform(transform: Transform): Unit = {
 
-    transform.dropColumns shouldBe None
     transform.dropDuplicates shouldBe None
+    transform.dropColumns shouldBe None
   }
 
   override protected def testPartitioning(partitioning: Partitioning): Unit = {

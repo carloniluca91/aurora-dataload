@@ -1,94 +1,88 @@
 {
   "id": "BANCLL11",
-  "dataSourcePaths": {
-    "landing": "${datasources.data.root}/bancll11/landing",
-    "success": "${datasources.data.root}/bancll11/success",
-    "failed": "${datasources.data.root}/bancll11/failed"
+  "extract": {
+    "type": "csv",
+    "landingPath": "${datasources.data.root}/bancll11/landing",
+    "fileNameRegex": "^cedacri_bancll11_(\\d{8})\\.csv\\.gz$",
+    "options": {
+      "sep": "|",
+      "header": "true"
+    }
   },
-  "etlConfiguration": {
-    "extract": {
-      "type": "CSV",
-      "fileNameRegex": "^cedacri_bancll11_(\\d{8})\\.csv\\.gz$",
-      "configuration": {
-        "options": {
-          "sep": "|",
-          "header": "true"
-        }
-      }
+  "transform": {
+    "filters": [
+      "NEITHER_NULL_OR_BLANK(ist)",
+      "ist IN ('I01', 'I27', 'I81', 'I94', 'I95', 'IE')",
+      "NEITHER_NULL_OR_BLANK(prodotto)",
+      "prodotto IN ('06420', '06421', '06422', '06423', '06424')",
+      "fil IS NOT NULL",
+      "conto IS NOT NULL",
+      "NEITHER_NULL_OR_BLANK(cin)",
+      "cin IN ('C027', 'C174', 'C244', 'C289', 'C486', 'C600', 'C628', 'C713', 'C750', 'C800')",
+      "MATCHES_REGEX(asse_da, '^\\d+$')",
+      "MATCHES_REGEX(num_asse, '^\\d+$')",
+      "MATCHES_TIMESTAMP_FORMAT(data_ril, 'dd/MM/yyyy HH:mm:ss')",
+      "MATCHES_REGEX(asse_a, '^\\d+$')",
+      "MATCHES_REGEX(tot_asse, '^\\d+$')",
+      "divisa IN ('D', 'E', 'M')",
+      "IS_FLAG(stato_1)",
+      "IS_FLAG(stato_2)",
+      "IS_FLAG(stato_3)",
+      "IS_FLAG(stato_4)",
+      "IS_FLAG(stato_5)",
+      "IS_FLAG(stato_6)",
+      "IS_FLAG(stato_7)",
+      "IS_FLAG(stato_8)",
+      "IS_FLAG(stato_9)",
+      "IS_FLAG(stato_10)",
+      "NEITHER_NULL_OR_BLANK(tipo_carnet)",
+      "tipo_carnet IS NOT NULL",
+      "tipo_carnet IN ('FF', 'P')"
+    ],
+    "transformations": [
+      "ist AS cd_istituto",
+      "CASE WHEN ist = 'I01' THEN 'Deutsche Bank' WHEN ist = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
+      "prodotto AS cd_prodotto",
+      "'Carnet Assegni' AS desc_prodotto",
+      "LPAD(fil, 8, '0') AS cd_filiale",
+      "LPAD(conto, 16, '0') AS cd_conto",
+      "cin AS cd_cin",
+      "CAST(asse_da AS INT) AS primo_assegno",
+      "CAST(num_asse AS INT) AS numero_carnet",
+      "TO_TIMESTAMP(data_ril, 'dd/MM/yyyy HH:mm:ss') AS ts_rilascio_carnet",
+      "DATE_FORMAT(TO_TIMESTAMP(data_ril, 'dd/MM/yyyy HH:mm:ss'), 'yyyy-MM-dd') AS dt_rilascio_carnet",
+      "divisa AS div_cc",
+      "CAST(asse_a AS INT) AS ultimo_assegno",
+      "CAST(tot_asse AS INT) AS numero_tot_assegni",
+      "DECODE_YN_FLAG(stato_1) AS stato_singolo_assegno_01",
+      "DECODE_YN_FLAG(stato_2) AS stato_singolo_assegno_02",
+      "DECODE_YN_FLAG(stato_3) AS stato_singolo_assegno_03",
+      "DECODE_YN_FLAG(stato_4) AS stato_singolo_assegno_04",
+      "DECODE_YN_FLAG(stato_5) AS stato_singolo_assegno_05",
+      "DECODE_YN_FLAG(stato_6) AS stato_singolo_assegno_06",
+      "DECODE_YN_FLAG(stato_7) AS stato_singolo_assegno_07",
+      "DECODE_YN_FLAG(stato_8) AS stato_singolo_assegno_08",
+      "DECODE_YN_FLAG(stato_9) AS stato_singolo_assegno_09",
+      "DECODE_YN_FLAG(stato_10) AS stato_singolo_assegno_10",
+      "tipo_carnet AS tp_carnet",
+      "CASE WHEN tipo_carnet = 'FF' THEN 'Formato Famiglia' ELSE 'Privato' END AS desc_carnet"
+    ],
+    "partitioning": {
+      "type": "fileName",
+      "columnName": "${spark.partition.column.daily}",
+      "regexGroup": 1,
+      "inputPattern": "yyyyMMdd",
+      "outputPattern": "yyyy-MM-dd"
+    }
+  },
+  "load": {
+    "stagingPath": {
+      "success": "${datasources.data.root}/bancll11/success",
+      "failed": "${datasources.data.root}/bancll11/failed"
     },
-    "transform": {
-      "filters": [
-        "NEITHER_NULL_OR_BLANK(ist)",
-        "ist IN ('I01', 'I27', 'I81', 'I94', 'I95', 'IE')",
-        "NEITHER_NULL_OR_BLANK(prodotto)",
-        "prodotto IN ('06420', '06421', '06422', '06423', '06424')",
-        "fil IS NOT NULL",
-        "conto IS NOT NULL",
-        "NEITHER_NULL_OR_BLANK(cin)",
-        "cin IN ('C027', 'C174', 'C244', 'C289', 'C486', 'C600', 'C628', 'C713', 'C750', 'C800')",
-        "MATCHES_REGEX(asse_da, '^\\d+$')",
-        "MATCHES_REGEX(num_asse, '^\\d+$')",
-        "MATCHES_TIMESTAMP_FORMAT(data_ril, 'dd/MM/yyyy HH:mm:ss')",
-        "MATCHES_REGEX(asse_a, '^\\d+$')",
-        "MATCHES_REGEX(tot_asse, '^\\d+$')",
-        "divisa IN ('D', 'E', 'M')",
-        "IS_FLAG(stato_1)",
-        "IS_FLAG(stato_2)",
-        "IS_FLAG(stato_3)",
-        "IS_FLAG(stato_4)",
-        "IS_FLAG(stato_5)",
-        "IS_FLAG(stato_6)",
-        "IS_FLAG(stato_7)",
-        "IS_FLAG(stato_8)",
-        "IS_FLAG(stato_9)",
-        "IS_FLAG(stato_10)",
-        "NEITHER_NULL_OR_BLANK(tipo_carnet)",
-        "tipo_carnet IS NOT NULL",
-        "tipo_carnet IN ('FF', 'P')"
-      ],
-      "transformations": [
-        "ist AS cd_istituto",
-        "CASE WHEN ist = 'I01' THEN 'Deutsche Bank' WHEN ist = 'IE' THEN 'Istituto Estero' ELSE 'Altro Istituto Nazionale' END AS desc_istituto",
-        "prodotto AS cd_prodotto",
-        "'Carnet Assegni' AS desc_prodotto",
-        "LPAD(fil, 8, '0') AS cd_filiale",
-        "LPAD(conto, 16, '0') AS cd_conto",
-        "cin AS cd_cin",
-        "CAST(asse_da AS INT) AS primo_assegno",
-        "CAST(num_asse AS INT) AS numero_carnet",
-        "TO_TIMESTAMP(data_ril, 'dd/MM/yyyy HH:mm:ss') AS ts_rilascio_carnet",
-        "DATE_FORMAT(TO_TIMESTAMP(data_ril, 'dd/MM/yyyy HH:mm:ss'), 'yyyy-MM-dd') AS dt_rilascio_carnet",
-        "divisa AS div_cc",
-        "CAST(asse_a AS INT) AS ultimo_assegno",
-        "CAST(tot_asse AS INT) AS numero_tot_assegni",
-        "DECODE_YN_FLAG(stato_1) AS stato_singolo_assegno_01",
-        "DECODE_YN_FLAG(stato_2) AS stato_singolo_assegno_02",
-        "DECODE_YN_FLAG(stato_3) AS stato_singolo_assegno_03",
-        "DECODE_YN_FLAG(stato_4) AS stato_singolo_assegno_04",
-        "DECODE_YN_FLAG(stato_5) AS stato_singolo_assegno_05",
-        "DECODE_YN_FLAG(stato_6) AS stato_singolo_assegno_06",
-        "DECODE_YN_FLAG(stato_7) AS stato_singolo_assegno_07",
-        "DECODE_YN_FLAG(stato_8) AS stato_singolo_assegno_08",
-        "DECODE_YN_FLAG(stato_9) AS stato_singolo_assegno_09",
-        "DECODE_YN_FLAG(stato_10) AS stato_singolo_assegno_10",
-        "tipo_carnet AS tp_carnet",
-        "CASE WHEN tipo_carnet = 'FF' THEN 'Formato Famiglia' ELSE 'Privato' END AS desc_carnet"
-      ]
-    },
-    "load": {
-      "partitionInfo": {
-        "type": "FILE_NAME_REGEX",
-        "columnName": "${spark.output.partition.daily}",
-        "configuration": {
-          "regexGroup": 1,
-          "inputPattern": "yyyyMMdd",
-          "outputPattern": "yyyy-MM-dd"
-        }
-      },
-      "target": {
-        "trusted": "${impala.db.name}.t_bancll11_trd",
-        "error": "${impala.db.name}.t_bancll11_err"
-      }
+    "stagingTable": {
+      "trusted": "${impala.db.name}.t_bancll11_trd",
+      "error": "${impala.db.name}.t_bancll11_err"
     }
   }
 }

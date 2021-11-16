@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter
 class FileNamePartitionComputerTest
   extends BasicTest {
 
-  s"A ${nameOf[FileNamePartitionComputer.type]}" should "correctly retrieve partition column value" in {
+  s"A ${nameOf[FileNamePartitionComputer]}" should "correctly retrieve partition column value" in {
 
     val now: LocalDate = LocalDate.now()
     val (inputPattern, outputPattern) = ("yyyyMMdd", "yyyy-MM-dd")
@@ -21,6 +21,6 @@ class FileNamePartitionComputerTest
 
     val partitioning: FileNamePartitioning = FileNamePartitioning("IGNORE", "IGNORE", 1, inputPattern, outputPattern)
     val expectedValue: String = now.format(DateTimeFormatter.ofPattern(outputPattern))
-    FileNamePartitionComputer.getPartitionColumn((path, regex.r, partitioning)) shouldBe lit(expectedValue)
+    new FileNamePartitionComputer(path, regex.r, partitioning).getPartitionColumn shouldBe lit(expectedValue)
   }
 }

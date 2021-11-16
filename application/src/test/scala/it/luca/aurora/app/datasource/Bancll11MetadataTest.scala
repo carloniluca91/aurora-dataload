@@ -9,7 +9,8 @@ class Bancll11MetadataTest
   override protected def testExtract(extract: Extract): Unit = {
 
     extract.isInstanceOf[CsvExtract] shouldBe true
-    extract.asInstanceOf[CsvExtract].options shouldBe Some(_: Map[String, String])
+    val csvExtract = extract.asInstanceOf[CsvExtract]
+    csvExtract.options.isDefined shouldBe true
   }
 
   override protected def testTransform(transform: Transform): Unit = {
