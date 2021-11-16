@@ -1,10 +1,9 @@
 package it.luca.aurora.core.sql.parsing
 
-import it.luca.aurora.core.BasicTest
+import it.luca.aurora.core.SparkBasicTest
 import it.luca.aurora.core.sql.functions._
 import org.apache.commons.lang3.StringUtils
-import org.apache.spark.sql.{Column, DataFrame, Row, SparkSession}
-import org.scalatest.BeforeAndAfterAll
+import org.apache.spark.sql.{Column, DataFrame, Row}
 
 import java.sql.{Date, Timestamp}
 import java.time.format.DateTimeFormatter
@@ -13,21 +12,9 @@ import java.util
 import scala.util.Try
 
 class SqlExpressionParserTest
-  extends BasicTest
-    with BeforeAndAfterAll {
-
-  protected implicit val sparkSession: SparkSession = SparkSession.builder()
-    .master("local")
-    .appName(s"${nameOf[SqlExpressionParserTest]}")
-    .getOrCreate()
+  extends SparkBasicTest {
 
   import sparkSession.implicits._
-
-  override def afterAll(): Unit = {
-
-    sparkSession.stop()
-    super.afterAll()
-  }
 
   s"The SQL parser" should s"parse an aliasing expression" in {
 

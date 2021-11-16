@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 trait SparkBasicTest
   extends BasicTest {
 
-  protected final val sparkSession: SparkSession = SparkSession.builder()
+  protected implicit final val sparkSession: SparkSession = SparkSession.builder()
     .master("local[1]")
     .appName(classOf[SparkBasicTest].getSimpleName)
     .getOrCreate()

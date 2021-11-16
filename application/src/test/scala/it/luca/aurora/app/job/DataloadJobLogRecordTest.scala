@@ -1,7 +1,7 @@
 package it.luca.aurora.app.job
 
 import it.luca.aurora.configuration.datasource.DataSource
-import it.luca.aurora.core.BasicMockingTest
+import it.luca.aurora.core.BasicTestWithMocking
 import it.luca.aurora.core.implicits.SparkSessionWrapper
 import org.apache.hadoop.fs.Path
 
@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class DataloadJobLogRecordTest
-  extends BasicMockingTest {
+  extends BasicTestWithMocking {
 
   private val (appId, appName) = ("appId", "appName")
   private val now = LocalDateTime.now()

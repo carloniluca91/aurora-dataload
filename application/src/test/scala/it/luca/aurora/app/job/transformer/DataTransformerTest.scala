@@ -20,6 +20,9 @@ class DataTransformerTest
   private val extract: AvroExtract = AvroExtract(Extract.Avro, "ignore", fileNameRegex)
   private val partitioningColumnName: String = "dt_business_date"
   private val partitioning: FileNamePartitioning = FileNamePartitioning("IGNORE", partitioningColumnName, 1, FileNameDatePattern, DateOutputPattern)
+  private val filters: Seq[String] =
+    s"${TestClass.FirstColumn} IS NOT NULL" ::
+      s"${TestClass.SecondColumn} IS NOT NULL" :: Nil
 
   implicit class DataFrameTestHelper(protected val dataFrame: DataFrame) {
 
@@ -61,10 +64,6 @@ class DataTransformerTest
       TestClass(1, Some("hello"), Some("world")) ::
         TestClass(2, None, None) :: Nil)
 
-    val filters: Seq[String] =
-      s"${TestClass.FirstColumn} IS NOT NULL" ::
-        s"${TestClass.SecondColumn} IS NOT NULL" :: Nil
-
     val transformations: Seq[String] =
         s"${TestClass.FirstColumn}" ::
         s"${TestClass.SecondColumn}" :: Nil
@@ -85,7 +84,7 @@ class DataTransformerTest
     errorDf.shouldContainColumn(TestClass.Id)
     errorDf.shouldContainColumn(TestClass.FirstColumn)
     errorDf.shouldContainColumn(TestClass.SecondColumn)
-    errorDf.shouldContainColumn(DataTransformer.FailedChecksNumber)
+    errorDf.shouldContainColumn(DataTransformer.FailedCheckCount)
     errorDf.shouldContainColumn(DataTransformer.FailedChecks)
     errorDf.shouldContainColumn(DataTransformer.InputFilePath)
     errorDf.uniqueValueOfColumnShouldBe(DataTransformer.InputFilePath, _.getString(0), filePath.toString)
@@ -119,7 +118,6 @@ class DataTransformerTest
       partitioning = partitioning)
 
     val (trustedDf, _): (DataFrame, DataFrame) = new DataTransformer(extract, transform).transform(inputDataFrame, filePath)
-
     trustedDf.shouldContainColumn(TestClass.Id)
     trustedDf.shouldContainColumn(TestClass.FirstColumn)
     trustedDf.shouldContainColumn(TestClass.SecondColumn)

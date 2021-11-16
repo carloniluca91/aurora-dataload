@@ -57,7 +57,7 @@ class DataTransformer(protected val extract: Extract,
 
     // Invalid records (i.e. that do not satisfy all of dataSource filters)
     val errorDf: DataFrame = dataFrame.filter(!overallFilterCol)
-      .withColumn(FailedChecksNumber, size(array_remove(array(filterFailureReportCols: _*), NoFailedCheckString)))
+      .withColumn(FailedCheckCount, size(array_remove(array(filterFailureReportCols: _*), NoFailedCheckString)))
       .withColumn(FailedChecks, array(filterFailureReportCols: _*))
       .withInputFilePathCol(InputFilePath, filePath)
       .withTechnicalColumns()
@@ -99,7 +99,7 @@ class DataTransformer(protected val extract: Extract,
 object DataTransformer {
 
   val InputFilePath: String = "input_file_path"
-  val FailedChecksNumber = "failed_checks_number"
+  val FailedCheckCount = "failed_checks_count"
   val FailedChecks: String = "failed_checks"
   val NoFailedCheckString: String = "NoFailedCheck"
 }
