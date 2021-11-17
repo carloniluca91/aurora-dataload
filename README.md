@@ -18,11 +18,10 @@ location (depending on job's success or failure) and stores a record on a Hive t
 This project is a personal, free-time rework of a real life project
 I had extensively worked on during my career ;)
 
-Main modules
+Project sub modules
 
-* `application` which represents the entry point
 * `core` which defines core classes and implicits
-* `configuration` which defines models for application's configuration
+* `configuration` which defines application's configuration classes
 
 Some details
 
