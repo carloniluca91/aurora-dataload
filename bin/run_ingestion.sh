@@ -1,36 +1,22 @@
 #!/usr/bin/env bash
 
 function log() {
-
   echo -e "$(date +"%Y-%m-%d %H:%M:%S")" "[$1]" "$2"
-
 }
 
-log "info" "Starting run_ingestion.sh script"
 dataSourceIdOpt="-d"
-dataSourceId=""
 while [[ $# -gt 0 ]]
 do
   key="$1"
   case $key in
 
       # dataSourceId
-      "$dataSourceIdOpt")
-        dataSourceId="$2"
-        shift # past argument
-        shift # past value
-        ;;
-
-      # unknown option
-      *)
-        log "warning" "Ignoring unrecognized option ($key) with value $2"
-        shift # past argument
-        shift # past value
-        ;;
+      "$dataSourceIdOpt") dataSourceId="$2"; shift; shift ;;
+      *) log "warning" "Ignoring unrecognized option ($key)"; shift ;;
   esac
 done
 
-if [[ -z $dataSourceId ]];
+if [[ -z $dataSourceId ]]
 then
   log "error" "Datasource name ($dataSourceIdOpt option) not provided. Spark application will not be submitted"
 else
