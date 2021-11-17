@@ -47,10 +47,7 @@ lazy val scalacTic = "org.scalactic" %% "scalactic" % scalaTestVersion
 lazy val scalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
 lazy val scalaMock = "org.scalamock" %% "scalamock" % scalaMockVersion % Test
 
-lazy val dataload = (project in file("."))
-  .aggregate(application, core, configuration)
-
-lazy val application = (project in file("application"))
+lazy val root = (project in file("."))
   .settings(
     libraryDependencies ++= sparkCore ::
       sparkSql ::
@@ -60,7 +57,8 @@ lazy val application = (project in file("application"))
       scalaMock :: Nil
   ).dependsOn(
   core % "test->test;compile->compile",
-  configuration)
+  configuration
+).aggregate(core, configuration)
 
 lazy val configuration = (project in file("configuration"))
   .settings(
