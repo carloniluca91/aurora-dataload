@@ -1,6 +1,6 @@
-organization := "it.luca"
 name := "aurora-dataload"
-version := "1.0.0"
+ThisBuild / organization := "it.luca"
+ThisBuild / version := "1.0.0"
 ThisBuild / scalaVersion := "2.11.12"
 ThisBuild / resolvers += "Cloudera Repo" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
 
