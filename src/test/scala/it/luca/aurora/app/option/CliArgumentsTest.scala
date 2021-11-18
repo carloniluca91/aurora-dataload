@@ -31,7 +31,7 @@ class CliArgumentsTest
   it should "be correctly initialized given long option argument" in {
 
     val args: Seq[String] = optionMap.flatMap {
-      case (key, value) => s"-${key.longOption}" :: value :: Nil
+      case (key, value) => s"--${key.longOption}" :: value :: Nil
     }.toSeq
 
     val cliArgumentsOpt: Option[CliArguments] = CliArguments.parse(args, CliArguments())
@@ -42,7 +42,21 @@ class CliArgumentsTest
     cliArguments.dataSourceId shouldBe DataSourceId
   }
 
-  it should "be correctly initialized given options with form --key=value" in {
+  it should "be correctly initialized given options with form -shortOption=value" in {
+
+    val args: Seq[String] = optionMap.map {
+      case (key, value) => s"-${key.shortOption}=$value"
+    }.toSeq
+
+    val cliArgumentsOpt: Option[CliArguments] = CliArguments.parse(args, CliArguments())
+    cliArgumentsOpt shouldBe Some(_: CliArguments)
+    val cliArguments: CliArguments = cliArgumentsOpt.get
+    cliArguments.propertiesFileName shouldBe PropertiesFile
+    cliArguments.dataSourcesFileName shouldBe DataSourcesFile
+    cliArguments.dataSourceId shouldBe DataSourceId
+  }
+
+  it should "be correctly initialized given options with form --longOption=value" in {
 
     val args: Seq[String] = optionMap.map {
       case (key, value) => s"--${key.longOption}=$value"

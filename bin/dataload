@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+function usage() {
+
+  script_name=$(basename "$0")
+  echo "Usage: $script_name command [options]"
+  echo "Available commands"
+  echo ""
+  echo "    clean             run sbt clean"
+  echo "    compile           run sbt compile"
+  echo "    test              run sbt test"
+  echo "    assembly          run sbt assembly"
+  echo "    deploy [env]      deploy application to specified environment"
+  echo "    reload            reload project (to be used when changing build.sbt file)"
+
+}
+
+# If no argument has been provided, print usage and return
+if [ -z "$1" ]
+then usage;
+else
+  . bin/set_environment
+  case $1 in
+
+    "clean") sbt clean;;
+    "compile") sbt clean compile;;
+    "test") sbt clean test;;
+    "assembly") sbt assembly;;
+    "deploy") info "deploy";;
+    "reload") sbt reload;;
+    *) error "Unknown command: $1"; usage ;;
+  esac
+fi

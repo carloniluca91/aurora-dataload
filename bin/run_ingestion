@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+function usage() {
+  script_name=$(basename "$0")
+  echo "Usage: $script_name [dataSourceId]"
+}
+
+function run_spark_submit() {
+
+  local dataSourceId=$1
+
+  # Spark submit settings
+  queue=root.users.osboxes
+  app_name="Aurora Dataload - $dataSourceId"
+  app_lib_dir=hdfs:///user/osboxes/apps/aurora_dataload/lib
+  app_jar="$app_lib_dir/aurora_dataload.jar"
+  properties_file=spark_application.properties
+  dataSources_file=aurora_datasources.json
+  log4_file=spark_application_log4j.properties
+
+  properties_path="$app_lib_dir/$properties_file"
+  dataSources_file_path="$app_lib_dir/$dataSources_file"
+  log4j_path="$app_lib_dir/$log4_file"
+  spark_submit_files=$properties_path,$dataSources_file_path,$log4j_path
+
+  main_class=it.luca.aurora.app.Main
+  properties_file_opt="--properties"
+  dataSources_file_opt="--json"
+  dataSource_id_opt="--dataSource"
+  main_class_args="$properties_file_opt=$properties_file $dataSources_file_opt=$dataSources_file $dataSource_id_opt=$dataSourceId"
+
+  info "Proceeding with spark-submit command. Details:
+        app_name: $app_name,
+        spark submit files: $spark_submit_files,
+        main class: $main_class,
+        HDFS jar location: $app_jar,
+        application arguments: $main_class_args
+        "
+
+  spark-submit --master yarn --deploy-mode cluster \
+    --queue $queue \
+    --name "$app_name" \
+    --files $spark_submit_files \
+    --jars $app_lib_dir/impala-jdbc-driver.jar \
+    --driver-java-options "-Dlog4j.configuration=$log4_file" \
+    --driver-class-path /etc/hive/conf \
+    --class $main_class \
+    $app_jar \
+   "$properties_file_opt=$properties_file" \
+   "$dataSources_file_opt=$dataSources_file" \
+   "$dataSource_id_opt=$dataSourceId"
+
+  spark_submit_return_code=$?
+  if [[ $spark_submit_return_code == 0 ]];
+    then info "Successfully executed spark-submit command";
+    else error "Error during execution of spark-submit command";
+  fi
+}
+
+#################
+##### START #####
+#################
+
+# If no argument has been provided, print usage and return
+if [ -z "$1" ]
+  then error "Datasource name not provided. Spark application will not be submitted"; usage ;
+  else
+    . bin/set_environment
+    run_launch_spark_submit "$1"
+fi

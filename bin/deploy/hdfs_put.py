@@ -1,64 +1,76 @@
 import argparse
+import json
 import logging
 import os
-from typing import Dict
+import sys
+from typing import Dict, List
 
-import requests
+from requests import Response
 
-from hdfs_utils import get_webhdfs_request_root_url, get_default_webhdfs_request_parameters, init_logging
+from hdfs_request import FSRequest, RequestType
+from utils import init_logging
+
+
+class FSPutRequest(FSRequest):
+
+    def __init__(self,
+                 local_file_path: str,
+                 hdfs_path: str):
+
+        self._log = logging.getLogger(__name__)
+        file_name = os.path.basename(local_file_path)
+        hdfs_path_normalized: str = FSPutRequest.normalize_path(hdfs_path)
+        hdfs_put_request_path: str = f"{hdfs_path_normalized}/{file_name}"
+        self._log.debug(f"Local file path: {local_file_path}, HDFS put request path: {hdfs_put_request_path}")
+        additional_parameters: Dict[str, str] = {
+            "op": "CREATE",
+            "overwrite": "true",
+            "recursive": "true"
+        }
+
+        super().__init__(RequestType.PUT,
+                         request_path=hdfs_put_request_path,
+                         additional_headers=None,
+                         additional_parameters=additional_parameters,
+                         request_data=open(local_file_path))
+
+    def _format_successful_response(self, response: Response):
+        return None
+
+    def _format_failed_response(self, response: Response):
+
+        response_text_dict = json.loads(response.text)
+        remote_exception: Dict[str, str] = response_text_dict["RemoteException"]
+        exception: str = remote_exception["exception"]
+        java_class_name: str = remote_exception["javaClassName"]
+        stack_trace: List[str] = remote_exception["message"].split("\n\t")
+        pretty_dict = {
+            "exception": exception,
+            "javaClassName": java_class_name,
+            "stackTrace": stack_trace
+        }
+
+        return json.dumps(pretty_dict, indent=4)
+
+    @staticmethod
+    def normalize_path(path: str) -> str:
+
+        cut_beginning_slash = path if not path.startswith("/") else path[1:]
+        return cut_beginning_slash if not cut_beginning_slash.endswith("/") else cut_beginning_slash[:-1]
+
 
 if __name__ == "__main__":
 
     _LOGGING_LEVEL = "logging_level"
-    _LOCAL_FILE = "local_file"
-    _HDFS_PATH = "hdfs_path"
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-local', "--local",
-                        help="Local file to put on HDFS",
-                        type=str,
-                        dest=_LOCAL_FILE,
-                        required=True,
-                        metavar="")
-
-    parser.add_argument('-hdfs', "--hdfs",
-                        help="Remote HDFS path where data will be put",
-                        type=str,
-                        dest=_HDFS_PATH,
-                        required=True,
-                        metavar="")
-
     parser.add_argument('-log', "--log",
                         help=f"logging level ({', '.join(['DEBUG', 'INFO', 'WARN|WARNING', 'ERROR', 'FATAL|CRITICAL'])}). Case insensitive",
                         type=str,
                         dest=_LOGGING_LEVEL,
                         required=False,
-                        default=logging.INFO,
+                        default="INFO",
                         metavar="")
 
-    provided_args = parser.parse_args()
-    init_logging(getattr(provided_args, _LOGGING_LEVEL))
-    log = logging.getLogger(__name__)
-
-    local_file_path = getattr(provided_args, _LOCAL_FILE)
-    hdfs_path = getattr(provided_args, _HDFS_PATH)
-
-    log.debug(f"Local file path: {local_file_path}")
-    log.debug(f"HDFS path: {hdfs_path}")
-    file_name = os.path.basename(local_file_path)
-    log.debug(f"File name: {file_name}")
-
-    # PUT "http://nn.example.com:50070/webhdfs/v1/tmp/testfile?op=CREATE&overwrite=true"
-    first_request_extra_params: Dict[str, str] = {
-        "op": "CREATE",
-        "overwrite": "true",
-        "recursive": "true"
-    }
-    first_request_params: Dict[str, str] = {** get_default_webhdfs_request_parameters(), ** first_request_extra_params}
-    first_put_request = requests.put(f"{get_webhdfs_request_root_url()}/{hdfs_path}/{file_name}")
-
-    PATH = "/user/osboxes/apps/aurora_dataload/"
-    get_request_params: Dict[str, str] = get_default_webhdfs_request_parameters()
-    get_request_params["op"] = "LISTSTATUS"
-    list_status_request = requests.get(f"{get_webhdfs_request_root_url()}/{PATH}", params=get_request_params)
-    print(list_status_request.json())
+    (namespace, unknown_args) = parser.parse_known_args()
+    init_logging(getattr(namespace, _LOGGING_LEVEL))
+    FSPutRequest(sys.argv[1], sys.argv[2]).run_request()

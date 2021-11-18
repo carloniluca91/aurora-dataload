@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+function usage() {
+  script_name=$(basename "$0")
+  echo "Usage: $script_name [localfile] [remotepath]"
+}
+
+function copy_file() {
+
+  local localfile=$1
+  local remotepath=$2
+
+  # Retrieve both user and password from environment.conf file
+  user=$(getProperty "user")
+  password=$(getProperty "password")
+
+  # Run pscp command
+  info "Moving local file $localfile to remotepath $remotepath"
+  pscp -l "$user" -pw "$password" "$localfile" quickstart-bigdata:"$remotepath"
+  return_value=$?
+  if [[ $return_value == 0 ]];
+    then info "Moved local file $localfile to remotepath $remotepath";
+    else error "Could not move local file $localfile to remotepath $remotepath";
+  fi
+}
+
+#################
+##### START #####
+#################
+
+# If no argument has been provided, print usage and return
+if [ -z "$1" ]
+then usage;
+else
+
+  . bin/set_environment
+  localfile=$1
+  remotepath=$2
+  if [ -n "$localfile" ] && [ -n "$remotepath" ];
+    then copy_file "$localfile" "$remotepath";
+    else error "Partial arguments provided. Could not fulfill request"; usage;
+  fi
+fi

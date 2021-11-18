@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+config_file=bin/environment.conf
+function getProperty {
+   property_key=$1
+   property_value=$(< $config_file grep "$property_key" | cut -d'=' -f2 | xargs)
+   echo "$property_value"
+}
+
 function log() {
   echo -e "$(date +"%Y-%m-%d %H:%M:%S")" "$1" "$2"
 }
